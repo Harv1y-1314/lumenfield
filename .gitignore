@@ -1,0 +1,10 @@
+.DS_Store
+node_modules/
+dist/
+*.log
+tools/vendor/*.json
+tools/vendor/*.txt
+tools/vendor/LICENSE-*
+tools/reference/skydata/
+tests/fixtures/*.tmp
+__pycache__/

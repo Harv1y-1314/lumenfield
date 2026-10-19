@@ -1,0 +1,163 @@
+/* 光野 · 设计令牌
+ *
+ * 数值来源：Apple Human Interface Guidelines 的 Typography / Color / Materials /
+ * Dark Mode / Layout / Motion 六个页面，加上 Apple 官方系统色表；
+ * HIG 没给数字的地方（材质模糊半径、动效时长）在注释里标了「经验值」，
+ * 这些是按 macOS 观感调出来的，不当成官方规格使用。
+ * pt 与 CSS px 在 Web 上按 1:1 处理。
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* 一、字体：SF 不含汉字，中文自动落 PingFang；≥20px 由系统切 SF Pro Display */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-num: "SF Pro Display", -apple-system, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* HIG 文字阶（macOS 档 / 行高 / 字重 / tracking） */
+  --t-large: 26px; --lh-large: 32px; --tr-large: 0.008em;
+  --t-title1: 22px; --lh-title1: 26px;
+  --t-title2: 17px; --lh-title2: 22px;
+  --t-title3: 15px; --lh-title3: 20px;
+  --t-headline: 13px; --lh-headline: 16px;
+  --t-body: 13px; --lh-body: 18px; --tr-body: -0.006em;
+  --t-callout: 12px; --lh-callout: 15px;
+  --t-sub: 11px; --lh-sub: 14px;
+  --t-footnote: 10px; --lh-footnote: 13px;
+
+  /* 二、栅格与尺寸：4/8 基线，macOS 控件与侧栏经验档 */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --titlebar-h: 52px;
+  --sidebar-w: 232px;
+  --inspector-w: 268px;
+  --control-h: 22px;
+  --control-h-lg: 28px;
+  --touch-min: 24px;
+
+  /* 三、圆角：macOS 连续圆角在 Web 上无对应，靠 border-radius + 高光描边近似（经验值） */
+  --r-window: 12px;
+  --r-card: 10px;
+  --r-control: 6px;
+  --r-pill: 999px;
+
+  /* 四、动效：HIG 只给原则；时长与曲线为经验值，reduced-motion 下退化为淡入淡出 */
+  --dur-1: 120ms; --dur-2: 200ms; --dur-3: 320ms; --dur-4: 480ms;
+  --ease-apple: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-soft: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* 五、系统色（Apple 官方 light 档值；深色在 [data-theme=dark] 里覆盖） */
+  --blue: rgb(0 122 255);
+  --blue-graphic: rgb(0 136 255);
+  --indigo: rgb(97 85 245);
+  --purple: rgb(203 48 224);
+  --pink: rgb(255 45 85);
+  --red: rgb(255 56 60);
+  --orange: rgb(255 141 40);
+  --yellow: rgb(255 204 0);
+  --green: rgb(52 199 89);
+  --mint: rgb(0 200 179);
+  --teal: rgb(0 195 208);
+  --cyan: rgb(0 192 232);
+  --brown: rgb(172 142 104);
+
+  --gray1: rgb(142 142 147);
+  --gray2: rgb(174 174 178);
+  --gray3: rgb(199 199 204);
+  --gray4: rgb(209 209 214);
+  --gray5: rgb(229 229 234);
+  --gray6: rgb(242 242 247);
+
+  --label: rgb(0 0 0 / 85%);
+  --label-2: rgb(60 60 43 / 60%);
+  --label-3: rgb(60 60 43 / 30%);
+  --label-4: rgb(60 60 43 / 18%);
+  --sep: rgb(60 60 43 / 29%);
+  --sep-opaque: rgb(198 198 200);
+  --link: rgb(0 122 255);
+
+  --bg: rgb(255 255 255);
+  --bg-2: rgb(242 242 247);
+  --bg-3: rgb(255 255 255);
+  --bg-grouped: rgb(242 242 247);
+  --fill-1: rgb(120 120 128 / 20%);
+  --fill-2: rgb(120 120 128 / 16%);
+  --fill-3: rgb(120 120 128 / 8%);
+  --fill-4: rgb(120 120 128 / 4%);
+
+  /* 材质层：backdrop-filter 半径与底色不透明度为经验值 */
+  --mat-ultrathin-blur: 20px;
+  --mat-thin-blur: 30px;
+  --mat-regular-blur: 40px;
+  --mat-thick-blur: 60px;
+  --mat-regular-bg: rgb(255 255 255 / 72%);
+  --mat-thick-bg: rgb(255 255 255 / 85%);
+  --mat-ultrathin-bg: rgb(255 255 255 / 55%);
+  --hairline: rgb(255 255 255 / 12%);
+  --shadow-1: 0 1px 3px rgb(0 0 0 / 8%);
+  --shadow-2: 0 8px 24px rgb(0 0 0 / 18%);
+  --shadow-3: 0 18px 48px rgb(0 0 0 / 22%);
+
+  /* 星图专用色：夜空不能用纯白，长时间观看要压亮度 */
+  --sky-deep: #05070f;
+  --sky-horizon: #14203a;
+  --sky-milky: rgb(196 210 255 / 13%);
+  --sky-star: rgb(232 238 255);
+  --sky-grid: rgb(120 150 210 / 22%);
+  --sky-gold: #f0b46a;
+  --sky-planet: #ffd27a;
+}
+
+[data-theme="dark"] {
+  --blue: rgb(10 132 255);
+  --indigo: rgb(109 124 255);
+  --purple: rgb(219 52 242);
+  --pink: rgb(255 55 95);
+  --red: rgb(255 69 58);
+  --orange: rgb(255 105 0);
+  --yellow: rgb(255 214 10);
+  --green: rgb(48 209 88);
+  --mint: rgb(0 218 195);
+  --teal: rgb(64 200 224);
+  --cyan: rgb(55 193 255);
+  --brown: rgb(172 142 104);
+
+  --gray1: rgb(142 142 147);
+  --gray2: rgb(99 99 102);
+  --gray3: rgb(72 72 74);
+  --gray4: rgb(58 58 60);
+  --gray5: rgb(44 44 46);
+  --gray6: rgb(28 28 30);
+
+  --label: rgb(255 255 255 / 85%);
+  --label-2: rgb(235 235 245 / 60%);
+  --label-3: rgb(235 235 245 / 29%);
+  --label-4: rgb(235 235 245 / 17%);
+  --sep: rgb(84 84 88 / 60%);
+  --sep-opaque: rgb(56 56 58);
+  --link: rgb(9 132 255);
+
+  --bg: rgb(0 0 0);
+  --bg-2: rgb(28 28 30);
+  --bg-3: rgb(44 44 46);
+  --bg-grouped: rgb(28 28 30);
+  --fill-1: rgb(120 120 128 / 36%);
+  --fill-2: rgb(120 120 128 / 32%);
+  --fill-3: rgb(120 120 128 / 24%);
+  --fill-4: rgb(120 120 128 / 18%);
+
+  --mat-regular-bg: rgb(30 30 32 / 62%);
+  --mat-thick-bg: rgb(30 30 32 / 78%);
+  --mat-ultrathin-bg: rgb(30 30 32 / 42%);
+  --hairline: rgb(255 255 255 / 10%);
+  --shadow-1: 0 1px 3px rgb(0 0 0 / 40%);
+  --shadow-2: 0 8px 24px rgb(0 0 0 / 50%);
+  --shadow-3: 0 18px 48px rgb(0 0 0 / 60%);
+}
+
+/* HIG：深色分 base（退后）与 elevated（前进）。模态、浮层走 elevated */
+.elevated {
+  --bg: rgb(28 28 30);
+  --bg-2: rgb(44 44 46);
+  --bg-3: rgb(58 58 60);
+}
