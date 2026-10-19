@@ -53,7 +53,7 @@ node tools/build-stars.js           # 改过星表或连线才需要
 | 用户反馈与取证结论 | `docs/反馈记录.md`（编号 `F-0XX`） |
 | 还缺什么、什么值得先做、什么明确不做 | `docs/升级路线.md`（缺口 `G-XX` / 候选 `C-XX`） |
 | 为什么这么设计、砍了什么 | `docs/像素蛋糕拆解.md` 的"我们故意不抄的" |
-| 实测数字与踩过的坑 | `docs/验证记录.md`（含 36 个被抓出来的真 bug，其中 23 个出自发布前复检） |
+| 实测数字与踩过的坑 | `docs/验证记录.md`（含 48 个被抓出来的真 bug：开发期 13、两轮发布前复检 35） |
 | 发布前该核什么、哪些只能肉眼核 | `docs/发布检查.md` |
 | 界面令牌与文案约定 | `docs/DESIGN.md`、`assets/css/tokens.css` |
 | 重取星表 / 重生成 DE440s 参照 | `tools/fetch-data.sh`、`tools/reference/skyfield_check.py` |
