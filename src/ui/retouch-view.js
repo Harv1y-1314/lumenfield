@@ -43,8 +43,9 @@
       fileIn.addEventListener('change', function () { importFiles(fileIn.files, api); fileIn.value = ''; });
       actions.appendChild(api.el('button', { class: 'control primary', text: '导入照片', onclick: function () { fileIn.click(); } }));
       actions.appendChild(fileIn);
+      var empty = st.images.length === 0;
       actions.appendChild(api.el('button', {
-        class: 'control', text: '套用到全部',
+        class: 'control', text: '套用到全部', disabled: empty,
         onclick: function () {
           var cur = current(); if (!cur) return;
           st.images.forEach(function (e) { e.recipe = JSON.parse(JSON.stringify(cur.recipe)); });
@@ -52,7 +53,8 @@
           redraw(true);
         }
       }));
-      actions.appendChild(api.el('button', { class: 'control', text: '导出', onclick: function () { exportCurrent(api); } }));
+      // 队列空时按钮置灰而不是点了没反应：静默 return 会让人以为功能坏了
+      actions.appendChild(api.el('button', { class: 'control', text: '导出', disabled: empty, onclick: function () { exportCurrent(api); } }));
 
       /* ── 舞台 ── */
       var stage = api.el('div', { class: 'stage', style: { background: 'var(--bg-2)', minHeight: '320px' } });
@@ -62,7 +64,7 @@
       stage.appendChild(badge);
       if (!st.images.length) {
         var drop = api.el('div', { class: 'dropzone', style: { margin: '0' } }, [
-          api.el('div', { text: '把 JPG / PNG / HEIF 拖进来，或点击选择文件' }),
+          api.el('div', { text: '把 JPG / PNG / WebP 拖进来，或点击选择文件' }),
           api.el('div', { class: 'tiny', style: { marginTop: '6px' }, text: '照片只在浏览器内存里处理：不上传、不登录、不按张计费。' })
         ]);
         drop.addEventListener('click', function () { fileIn.click(); });
@@ -105,7 +107,7 @@
         });
         strip.appendChild(api.el('button', {
           class: 'frame', style: { display: 'grid', placeItems: 'center', height: '72px', color: 'var(--label-2)' },
-          text: '＋', onclick: function () { fileIn.click(); }
+          text: '+', onclick: function () { fileIn.click(); }
         }));
         content.appendChild(api.el('div', { class: 'card tight', style: { marginTop: '12px' } }, strip));
       }
@@ -334,15 +336,15 @@
       /* 渲染调度 */
       function redraw(full) {
         if (host.pending) cancelAnimationFrame(host.pending);
-        host.pending = requestAnimationFrame(function () { host.pending = null; paintPreview(api, full !== false); });
+        host.pending = requestAnimationFrame(function () { host.pending = null; safePaint(api, full !== false); });
       }
-      paintPreview(api, true);
+      safePaint(api, true);
       paintToolHint();
       host.redraw = redraw;
 
       /* 键盘：~ 看原图 */
       keyHandler = function (ev) {
-        if (ev.key === '~' || (ev.key === '`' && !ev.repeat)) { view.peek = true; paintPreview(api, true); }
+        if (ev.key === '~' || (ev.key === '`' && !ev.repeat)) { view.peek = true; safePaint(api, true); }
         if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 's') {
           ev.preventDefault();
           api.saveText(safeName(current().name) + '.mizar.json', JSON.stringify(current().recipe, null, 1), 'application/json');
@@ -350,7 +352,7 @@
         }
       };
       upHandler = function (ev) {
-        if (ev.key === '~' || ev.key === '`') { view.peek = false; paintPreview(api, true); }
+        if (ev.key === '~' || ev.key === '`') { view.peek = false; safePaint(api, true); }
       };
       document.addEventListener('keydown', keyHandler);
       document.addEventListener('keyup', upHandler);
@@ -502,12 +504,24 @@
 
   function applyAspect(entry, id) {
     if (id === 'free') { entry.recipe.geometry.crop = null; return; }
-    var ratio = { '3:2': 3 / 2, '4:3': 4 / 3, '1:1': 1, '16:9': 16 / 9, '竖': 9 / 16 }[id];
+    // 键必须与分段按钮的 id 完全一致。这里曾经写成 '竖'，而按钮 id 是 '9:16'，
+    // 于是 ratio=undefined → crop.h=NaN → 预览画布尺寸 NaN、导出全坏：点一下就崩
+    var ratio = { '3:2': 3 / 2, '4:3': 4 / 3, '1:1': 1, '16:9': 16 / 9, '9:16': 9 / 16 }[id];
     var w = entry.w, h = entry.h;
     var cw = w, ch = w / ratio;
     if (ch > h) { ch = h; cw = h * ratio; }
     entry.recipe.geometry.crop = { x: (w - cw) / 2, y: (h - ch) / 2, w: cw, h: ch };
     entry.recipe.geometry.aspect = id;
+  }
+
+  function safePaint(api, full) {
+    // 管线在 rAF 回调与键盘回调里跑，render() 那层的"这一屏没算完"兜底卡包不到它；
+    // 不接住就是画面静默冻在上一帧、只剩控制台红字
+    try { paintPreview(api, full); }
+    catch (err) {
+      api.toast('渲染失败：' + (err && err.message || err));
+      if (root.console) root.console.error(err);
+    }
   }
 
   function paintPreview(api, full) {

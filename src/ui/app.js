@@ -34,7 +34,7 @@
     sky: {
       hour: 21.5, playing: false, speed: 5, mode: 'dome', lens: 24, aspect: '3:2',
       bearing: 180, centerAlt: 20, magLimit: 5.6, showFrame: true,
-      cond: { cloud: 20, bortle: 3, haze: 20 },
+      cond: { cloud: 20, bortle: 3, haze: 20, filled: false },   // filled=false 时三个自填项不参与评分
       layers: { stars: true, milky: true, planets: true, moon: true, grid: true, names: true, consts: true, ecliptic: false }
     },
     route: { days: 7, kind: '风光' }
@@ -52,7 +52,11 @@
   // createRadialGradient(NaN…) 与 style.width='NaN%'，前者抛异常只剩兜底卡、
   // 后者静默失效。isFinite 之后夹回各滑杆自己的量程，不合法就留默认值。
   var SKY_RANGE = {
-    hour: [0, 24], lens: [8, 400], bearing: [0, 360], centerAlt: [-5, 88], speed: [1, 15]
+    // 时间轴刻度是 12:00 → 次日 6:00（即 12–30），不是 0–24：
+    // 按 0–24 夹会把播过午夜后的 25.x 截回 24，刷新一次时间就跳回夜里
+    hour: [12, 30], lens: [8, 400], bearing: [0, 360], centerAlt: [-5, 88], speed: [1, 15],
+    // 星表只到 V≤5.6，滑杆上限也必须收到这儿，否则 5.7–6.5 是画不出任何东西的死区
+    magLimit: [4, 5.6]
   };
   function sanitizeSky(o) {
     var out = {};
@@ -147,7 +151,9 @@
     var val = el('span', { class: 'slider-value', text: fmtVal(opts) });
     row.appendChild(el('label', { class: 'slider-label' }, [
       opts.label,
-      opts.hint ? el('span', { class: 'tiny', title: opts.hint, text: 'ⓘ' }) : null
+      // 这里原有一个 ⓘ 图标 + title，与下方 .slider-hint 是同一句话，读了俩遍；
+      // 而且 ⓘ 对读屏没有语义。提示只留一处可见文字
+      null
     ]));
     row.appendChild(val);
     var input = el('input', {
@@ -270,8 +276,9 @@
 
   var toastTimer;
   function toast(msg) {
+    // toast 是导出/导入失败的唯一反馈，读屏用户也得听得到
     var t = document.getElementById('lf-toast');
-    if (!t) { t = el('div', { class: 'toast', id: 'lf-toast' }); document.body.appendChild(t); }
+    if (!t) { t = el('div', { class: 'toast', id: 'lf-toast', role: 'status', 'aria-live': 'polite' }); document.body.appendChild(t); }
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
@@ -358,7 +365,12 @@
     table: table, card: card, stat: stat, toast: toast,
     saveText: saveText, downloadBlob: downloadBlob,
     rerender: rerender, save: save, setTheme: applyTheme,
-    go: function (id) { if (VIEWS[id]) { store.view = id; save(); rerender(); } },
+    go: function (id) {
+      if (!VIEWS[id]) return;
+      // 换视图时收起参数抽屉：否则窄屏下会留一层盖在新视图上的旧面板
+      if (api.closeDrawer) api.closeDrawer();
+      store.view = id; save(); rerender();
+    },
     register: function (id, view) { VIEWS[id] = view; },
     views: function () { return Object.keys(VIEWS); },
     time: function (d) { return A ? A.fmtTime(d, store.site.tz) : '—'; },
@@ -395,16 +407,24 @@
     (root.LFSites.list || []).forEach(function (s) {
       sel.appendChild(el('option', { value: s.id, text: s.name + (s.region ? ' · ' + s.region : '') }));
     });
-    // 手改过坐标时 siteKey 是 'custom'，列表里没这一项，下拉会停在空白上——补一项
-    if (store.siteKey === 'custom') {
-      sel.appendChild(el('option', { value: 'custom', text: '自定义机位' }));
-    }
-    sel.value = store.siteKey;
     sel.addEventListener('change', function () {
       store.siteKey = sel.value;
       store.site = siteFromKey(sel.value);
       save(); paintSiteMeta(); rerender();
     });
+    // 手改坐标发生在运行期（路书的自定义坐标框），必须能把下拉与侧栏文字一起同步过来：
+    // 只改 store 不重绘侧栏，下拉会停在旧预设上，坐标文本也不跟着变
+    function syncSiteSelect() {
+      var s2 = document.getElementById('site-select');
+      if (!s2) return;
+      if (store.siteKey === 'custom' && !s2.querySelector('option[value="custom"]')) {
+        s2.appendChild(el('option', { value: 'custom', text: '自定义机位' }));
+      }
+      s2.value = store.siteKey;
+      paintSiteMeta();
+    }
+    api.syncSite = syncSiteSelect;
+    syncSiteSelect();
 
     var dateIn = document.getElementById('date-input');
     dateIn.value = store.dateISO;
@@ -420,19 +440,35 @@
     document.getElementById('help-btn').addEventListener('click', function () {
       document.getElementById('help-dialog').showModal();
     });
-    // 窄屏时检查器是抽屉：打开靠点侧栏，关闭给右上角一个明确的 ×
+    // 窄屏时检查器是抽屉。它原来只有"关"，没有"开"：全仓没有任何代码加
+    // inspector-open，于是窗口一旦窄于 1180px，五个视图的参数面板全部不可达。
+    // 打开靠工具栏上那颗滑杆按钮，配一层遮罩点哪关哪。
+    function setDrawer(open) {
+      var toggles = document.getElementById('drawer-toggle');
+      document.body.classList.toggle('inspector-open', !!open);
+      if (toggles) toggles.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    var drawerBtn = document.getElementById('drawer-toggle');
+    if (drawerBtn) drawerBtn.addEventListener('click', function () {
+      setDrawer(!document.body.classList.contains('inspector-open'));
+    });
+    var scrim = document.getElementById('drawer-scrim');
+    if (scrim) scrim.addEventListener('click', function () { setDrawer(false); });
+    api.closeDrawer = function () { setDrawer(false); };
     var closeBtn = el('button', {
       class: 'insp-close icon-btn', 'aria-label': '收起参数面板', text: '×',
-      onclick: function () { document.body.classList.remove('inspector-open'); }
+      onclick: function () { setDrawer(false); }
     });
     document.getElementById('inspector').prepend(closeBtn);
     document.addEventListener('keydown', function (e) {
       if (e.target.matches('input,select,textarea')) return;
+      // 帮助弹窗是模态：此时按 1–5 不该在它背后偷偷换工作区
+      if (document.querySelector('dialog[open]')) return;
       if (e.key >= '1' && e.key <= '5') {
         var it = order[Number(e.key) - 1];
         if (it) api.go(it.id);
       }
-      if (e.key === 'Escape') document.body.classList.remove('inspector-open');
+      if (e.key === 'Escape') setDrawer(false);
     });
 
     paintSiteMeta();
@@ -450,8 +486,12 @@
     return Math.abs(lat).toFixed(2) + '°' + (lat >= 0 ? 'N' : 'S') + ', ' + Math.abs(lon).toFixed(2) + '°' + (lon >= 0 ? 'E' : 'W');
   }
   function tzLabel(min) {
-    var h = min / 60;
-    return 'UTC' + (h >= 0 ? '+' : '−') + Math.abs(h);
+    // 非整点时区要写成 UTC+5:45（尼泊尔）而不是 UTC+5.75，否则和路书里
+    // "尼泊尔是 +5:45、部分是 +5:30" 的提示对不上
+    var sign = min >= 0 ? '+' : '−';
+    var a = Math.abs(min);
+    var h = Math.floor(a / 60), m = a % 60;
+    return 'UTC' + sign + h + (m ? ':' + (m < 10 ? '0' : '') + m : '');
   }
   // LFutil 只留真有人调的：tzLabel 被 home/route/tools 三个视图按 root.LFutil 取用。
   // 原先还挂着 esc 与 tzForLon——前者零调用，后者"按经度估时区"恰恰是路书里明确劝退的做法。

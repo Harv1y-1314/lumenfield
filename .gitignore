@@ -8,4 +8,7 @@ dist/
 tools/vendor/
 tools/reference/skydata/
 tests/fixtures/*.tmp
+# check.sh 的"门禁自测"会临时造一个探针文件；脚本被中断时它会残留，
+# 而 ls-files -co 会把它扫进下次打包与提交
+src/__lf_probe.js
 __pycache__/

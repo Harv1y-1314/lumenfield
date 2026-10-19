@@ -143,14 +143,17 @@
     next.id = 'custom'; next.name = '自定义机位'; next.region = ''; next.note = '手填坐标';
     LF.state.site = next; LF.state.siteKey = 'custom';
     LF.state.customSite = next;          // 切走再切回 'custom' 时要用这份，不能用旧的
-    LF.save(); LF.rerender();
+    LF.save();
+    if (LF.syncSite) LF.syncSite();      // 下拉与侧栏坐标文本要跟着变，不能只重绘主区
+    LF.rerender();
   }
 
   function clampV(x, lo, hi) { return x < lo ? lo : x > hi ? hi : x; }
 
   function minutes(a, b) {
     if (!a || !b) return '—';
-    return Math.round(Math.abs(b - a) / 60000) + '′';
+    // 中文里写"分"而不是 ′：同一张表里 ° 是度，′ 会被读成角分
+    return Math.round(Math.abs(b - a) / 60000) + ' 分';
   }
 
   function drawCompass(canvas, site, start, api) {
@@ -264,7 +267,8 @@
       }
       out.push('评分只含"黑度 × 银心高度 × 月光"，云与光污染不在里面——出发前务必另查云量。');
     }
-    out.push('纬度 ' + Math.abs(site.lat).toFixed(2) + '°' + (site.lat >= 0 ? 'N' : 'S') + '：北极星高度约等于纬度，水平仪校准可用它。');
+    out.push('纬度 ' + Math.abs(site.lat).toFixed(2) + '°' + (site.lat >= 0 ? 'N' : 'S') + '：' +
+      (site.lat >= 0 ? '北极星高度约等于纬度，水平仪校准可用它。' : '南天没有北极星可用，校准改找南十字长轴的指向（或直接用手机水平仪）。'));
     return out;
   }
 

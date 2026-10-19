@@ -22,7 +22,7 @@
 | 想要完整能力 | `python3 -m http.server 8795` 后打开 <http://127.0.0.1:8795/>（`file://` 下浏览器禁本地 `fetch`，本仓库刻意不用 fetch，两种打开方式都能跑；但 http 下 localStorage 更稳） |
 | 在线看 | <https://harv1y-1314.github.io/lumenfield/>（GitHub Pages，与本仓库同源，改动 push 后约 1 分钟生效） |
 
-需要 Safari 16 / Chrome 110 以上的任意桌面浏览器；iPhone 与 iPad 直接用 Safari 打开同一地址即可。
+需要 Safari 16 / Chrome 110 以上的任意桌面浏览器。iPhone 与 iPad 用 Safari 打开同一地址即可（触控拖拽与存储配额尚未在真机上实测，桌面 412px 断点与抽屉排版已由回归覆盖；裸宽 <1180px 时参数面板收进右上角的滑杆按钮）。
 
 ## 五个工作区
 

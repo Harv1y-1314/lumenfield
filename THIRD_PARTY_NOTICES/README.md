@@ -9,11 +9,11 @@
 | 层 | 是什么 | 许可 | 随仓分发的方式 |
 | --- | --- | --- | --- |
 | 封装 | Bretton Wade 整理的 Yale BSC5 JSON（`bsc5.json`，本仓按 `tools/fetch-data.sh` 取回后生成 `stars.js`） | MIT（Copyright (c) 2016 Bretton Wade） | 正文逐字保留在 `THIRD_PARTY_NOTICES/brettonw-YaleBrightStarCatalog-MIT.txt`，随本仓一起分发——MIT 要求"所有副本必须包含此许可"，所以这份正文**必须**在仓里，不能只留在被 `.gitignore` 挡掉的 `tools/vendor/` |
-| 星表本体 | Yale Bright Star Catalogue 第 5 版（Hoffleit & Jaschek, 1991；Yale University Observatory 发布，经 NASA ADC / VizieR 以目录 **V/50** 分发） | 该星表是已发表的天文实测数据集，历史上未附开放许可条款，通行做法是**自由使用 + 请求引用** | 本仓只取其中 3249 条的坐标、星等、颜色等**实测数值**（事实数据），并在下方给出正式引用 |
+| 星表本体 | Yale Bright Star Catalogue 第 5 版（Hoffleit & Jaschek, 1991；Yale University Observatory 发布，NASA ADC 与 CDS/VizieR 均有分发） | 该星表是已发表的天文实测数据集，历史上未附开放许可条款，通行做法是**自由使用 + 请求引用** | 本仓只取其中 3249 条的坐标、星等、颜色等**实测数值**（事实数据），并在下方给出正式引用 |
 
-引用：`Hoffleit, D., Jaschek, C., The Bright Star Catalogue, 5th revised edition, Yale University Observatory (1991). Also available via VizieR as catalogue I/50 / V/50.`
+引用：`Hoffleit, D., Jaschek, C., The Bright Star Catalogue, 5th revised edition (1991), Bibcode: 1991bsc..book.....H.`
 
-一句实话：本仓不主张对星表内容拥有版权，也不主张 MIT 覆盖了它；MIT 覆盖的是我们写的代码与 Wade 的 JSON 封装。
+一句实话：本仓不主张对星表内容拥有版权，也不主张 MIT 覆盖了它；MIT 覆盖的是我们写的代码与 Wade 的 JSON 封装。目录编号不写死在文档里——可核的是作者、年份与 Bibcode，编号随镜像站而异。
 
 ## 二、IAU 专名对照（生成 `stars.js` 里的 `labels`）
 

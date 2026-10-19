@@ -47,15 +47,22 @@
       /* 顶部工具条动作 */
       var actions = document.getElementById('toolbar-actions');
       actions.textContent = '';
-      var dayShift = function (delta) {
-        var t = new Date(Date.UTC(d.y, d.m - 1, d.d + delta));
-        api.state.dateISO = t.toISOString().slice(0, 10);
+      var todayISO = new Date().toISOString().slice(0, 10);
+      // 't' 必须是"回到今天"，不是"原地不动"：按 delta=0 算的话，站到 10-21 再点
+      // "今天"永远回不来，而且高亮恒在"今天"与实际日期不符
+      var shift = function (id) {
+        if (id === 't') {
+          api.state.dateISO = todayISO;
+        } else {
+          var t = new Date(Date.UTC(d.y, d.m - 1, d.d + (id === 'y' ? -1 : 1)));
+          api.state.dateISO = t.toISOString().slice(0, 10);
+        }
         document.getElementById('date-input').value = api.state.dateISO;
         api.save(); api.rerender();
       };
       actions.appendChild(api.segmented([
         { id: 'y', label: '昨天' }, { id: 't', label: '今天' }, { id: 'n', label: '明天' }
-      ], 't', function (id) { dayShift(id === 'y' ? -1 : id === 'n' ? 1 : 0); }));
+      ], api.state.dateISO === todayISO ? 't' : '', shift));
       actions.appendChild(api.el('button', { class: 'control', text: '排一周', onclick: function () { api.go('route'); } }));
       actions.appendChild(api.el('button', { class: 'control primary', text: '打开星野', onclick: function () { api.go('sky'); } }));
 

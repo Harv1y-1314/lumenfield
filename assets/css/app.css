@@ -84,7 +84,7 @@ body.no-inspector .app { grid-template-columns: var(--sidebar-w) minmax(0, 1fr) 
 /* ── 主区与工具栏 ───────────────────────────────────────── */
 .main { display: flex; flex-direction: column; min-width: 0; background: var(--bg-grouped); }
 .toolbar {
-  display: flex; align-items: flex-end; gap: var(--s-4);
+  display: flex; align-items: flex-end; gap: var(--s-4); flex-wrap: wrap;
   padding: 10px var(--s-5) 10px;
   background: var(--mat-ultrathin-bg);
   backdrop-filter: blur(var(--mat-ultrathin-blur)) saturate(180%);
@@ -92,7 +92,9 @@ body.no-inspector .app { grid-template-columns: var(--sidebar-w) minmax(0, 1fr) 
   border-bottom: 1px solid var(--sep);
   min-height: var(--titlebar-h);
 }
-.toolbar-title h1 { font-size: var(--t-large); line-height: var(--lh-large); font-weight: 600; }
+.toolbar-title { min-width: 0; }
+/* 窄屏时标题栏要跟按钮抢宽度；"工作台"曾经被挤成"工作 / 台"两行 */
+.toolbar-title h1 { font-size: var(--t-large); line-height: var(--lh-large); font-weight: 600; white-space: nowrap; }
 .toolbar-title p { margin: 0; font-size: var(--t-callout); color: var(--label-2); }
 .toolbar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
 
@@ -310,12 +312,19 @@ dialog ul { padding-left: 18px; margin: 0; }
 dialog li { margin-bottom: 4px; }
 dialog form { padding: 0 var(--s-6) var(--s-5); display: flex; justify-content: flex-end; }
 
+/* 窄屏参数抽屉的开与遮罩：桌面宽度下这两样都不该存在 */
+.drawer-toggle, .drawer-scrim { display: none; }
+
 @media (max-width: 1180px) {
   .app { grid-template-columns: 200px minmax(0, 1fr); }
+  .drawer-toggle { display: grid; margin-left: 6px; }
+  .drawer-scrim { display: none; }
+  body.inspector-open .drawer-scrim { display: block; position: fixed; inset: 0; z-index: 29; background: rgb(0 0 0 / 30%); }
+  body.inspector-open .drawer-toggle { color: var(--blue); border-color: var(--blue); }
   .inspector {
     position: fixed; right: 0; top: 0; bottom: 0; width: min(320px, 88vw); z-index: 30;
     transform: translateX(100%); transition: transform var(--dur-3) var(--ease-apple);
-    box-shadow: var(--shadow-3);
+    box-shadow: var(--shadow-3); overflow-y: auto;
   }
   body.inspector-open .inspector { transform: none; }
   .insp-close { display: block; position: sticky; top: 4px; margin-left: auto; }
@@ -325,7 +334,9 @@ dialog form { padding: 0 var(--s-6) var(--s-5); display: flex; justify-content: 
   .sidebar { flex-direction: row; align-items: center; gap: var(--s-2); overflow-x: auto; padding: 6px 8px; border-right: 0; border-bottom: 1px solid var(--sep); }
   .sidebar-brand { padding: 0 4px; }
   .sidebar-brand .brand-sub { display: none; }
-  .nav { flex-direction: row; }
+  .nav { flex-direction: row; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none;
+         -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+  .nav::-webkit-scrollbar { display: none; }
   .nav-item { padding: 4px 8px; white-space: nowrap; }
   .nav-item .nav-key { display: none; }
   .sidebar-section, .sidebar-foot { display: none; }

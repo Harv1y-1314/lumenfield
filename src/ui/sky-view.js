@@ -9,6 +9,9 @@
   var LF = root.LF, A = root.LFAstro, Sky = root.LFSky;
 
   var raf = null, loopRaf = null, lastFrame = 0, hover = null, drag = null;
+  // 播放键的两个字形：▶ 后面带 U+FE0E 强制文本呈现（否则部分平台会画成彩色 emoji），
+  // 暂停用 U+2016 双竖线——原来的 U+2759 ❙❙ 是 dingbat，缺字字体下会掉成方框
+  var GLYPH_PLAY = '\u25B6\uFE0E', GLYPH_PAUSE = '\u2016';
   var canvas, stage, tip;
 
   function localToDate(site, dayISO, hourLocal) {
@@ -37,7 +40,7 @@
       stage.appendChild(tip);
 
       var bar = api.el('div', { class: 'stage-bar' });
-      var playBtn = api.el('button', { class: 'icon-btn', title: '播放/暂停（空格）', text: sky.playing ? '❙❙' : '▶' });
+      var playBtn = api.el('button', { class: 'icon-btn', title: '播放/暂停（空格）', text: sky.playing ? GLYPH_PAUSE : GLYPH_PLAY });
       var timeLabel = api.el('span', { class: 'slider-value', style: { minWidth: '64px' } });
       var speedSeg = api.segmented([
         { id: 1, label: '1×' }, { id: 5, label: '5×' }, { id: 15, label: '15×' }
@@ -74,10 +77,11 @@
           hint: '穹顶模式下也可以直接在图上拖取景框',
           onInput: function (v) { sky.bearing = v; api.save(); reRender(); }
         }),
-        api.slider({
+        // 中心高度只对镜头视场有意义；穹顶是固定看全天空的极坐标图，给了滑杆也是假交互
+        sky.mode === 'frame' ? api.slider({
           label: '画面中心高度', min: -5, max: 88, step: 1, value: sky.centerAlt, unit: '°',
           onInput: function (v) { sky.centerAlt = v; api.save(); reRender(); }
-        }),
+        }) : null,
         api.segmented([{ id: '3:2', label: '3:2' }, { id: '16:9', label: '16:9' }, { id: '1:1', label: '1:1' }, { id: '9:16', label: '竖 9:16' }],
           sky.aspect || '3:2', function (id) { sky.aspect = id; api.save(); reRender(); })
       ], { note: '拖拽可平移' }));
@@ -85,8 +89,8 @@
       insp.appendChild(api.group('图层', [
         api.toggle('恒星', sky.layers.stars, function (v) { sky.layers.stars = v; api.save(); reRender(); }),
         api.slider({
-          label: '星等上限', min: 2, max: 6.5, step: 0.1, value: sky.magLimit || 5.6, sign: false,
-          hint: '6.5 是肉眼极限，画到 5.6 已经 3000 多颗；手机上看清不亏电就调低',
+          label: '星等上限', min: 2, max: 5.6, step: 0.1, value: sky.magLimit || 5.6, sign: false,
+          hint: '星表只收录到 V≤5.6（3249 颗），再往上没有数据可画；手机上电不够就往低调',
           onInput: function (v) { sky.magLimit = v; api.save(); reRender(); }
         }),
         api.toggle('银河带', sky.layers.milky, function (v) { sky.layers.milky = v; api.save(); reRender(); }),
@@ -97,22 +101,24 @@
         api.toggle('黄道', !!sky.layers.ecliptic, function (v) { sky.layers.ecliptic = v; api.save(); reRender(); })
       ]));
 
-      /* 现场条件：算不出来的就让你填 */
-      var cond = sky.cond || (sky.cond = { cloud: 20, bortle: 3, haze: 20 });
+      /* 现场条件：算不出来的就让你填，没填就不许拿编造值乘进评分 */
+      var cond = sky.cond || (sky.cond = { cloud: 20, bortle: 3, haze: 20, filled: false });
+      if (cond.filled === undefined) cond.filled = false;
+      function touched() { cond.filled = true; api.save(); reRender(); }
       insp.appendChild(api.group('现场条件（自填）', [
         api.slider({
           label: '低云量', min: 0, max: 100, step: 5, value: cond.cloud, unit: '%',
-          hint: '云要联网取数值才准，这里给你手动填，用来算"今晚值不值得跑"',
-          onInput: function (v) { cond.cloud = v; api.save(); reRender(); }
+          hint: '云要联网取数值才准，这里给你手动填；不填就不参与评分',
+          onInput: function (v) { cond.cloud = v; touched(); }
         }),
         api.slider({
           label: '空气通透度', min: 0, max: 100, step: 5, value: 100 - cond.haze, unit: '%',
-          onInput: function (v) { cond.haze = 100 - v; api.save(); reRender(); }
+          onInput: function (v) { cond.haze = 100 - v; touched(); }
         }),
         api.segmented([{ id: 1, label: 'B1' }, { id: 2, label: 'B2' }, { id: 3, label: 'B3' }, { id: 4, label: 'B4' },
-          { id: 5, label: 'B5' }, { id: 6, label: 'B6' }, { id: 7, label: 'B7' }, { id: 8, label: 'B8' }],
-          cond.bortle, function (v) { cond.bortle = v; api.save(); reRender(); })
-      ], { note: 'Bortle 1 最黑' }));
+          { id: 5, label: 'B5' }, { id: 6, label: 'B6' }, { id: 7, label: 'B7' }, { id: 8, label: 'B8' }, { id: 9, label: 'B9' }],
+          cond.bortle, function (v) { cond.bortle = v; touched(); })
+      ], { note: cond.filled ? 'Bortle 1 最黑，9 最亮' : '未填，评分只算天文面' }));
 
       var scoreBox = api.el('div');
       insp.appendChild(api.group('此刻能不能拍', [scoreBox]));
@@ -143,7 +149,11 @@
         last = Sky.draw(canvas, view) || last;
         timeLabel.textContent = fmtHour(sky.hour);
         var score = A.astroScore(date, site.lat, site.lon, site.tz);
-        var cloudPenalty = (1 - cond.cloud / 100) * (1 - cond.haze / 220) * (1 - Math.max(0, cond.bortle - 3) * 0.07);
+        // 三个自填项没填时一律按"不扣分"算，并在读数里写明——给一组编造的
+        // 云量/Bortle 去乘评分，等于用假数据把界面填满，这条是红线
+        var cloudPenalty = cond.filled
+          ? (1 - cond.cloud / 100) * (1 - cond.haze / 220) * (1 - Math.max(0, cond.bortle - 3) * 0.07)
+          : 1;
         var final = score.score * cloudPenalty;
         scoreBox.textContent = '';
         scoreBox.appendChild(api.el('div', { class: 'row spread' }, [
@@ -153,13 +163,15 @@
         scoreBox.appendChild(api.el('div', { class: 'gauge', style: { marginTop: '6px' } },
           api.el('i', { style: { width: Math.round(final * 100) + '%' } })));
         scoreBox.appendChild(api.el('div', { class: 'tiny', style: { marginTop: '6px' },
-          text: '太阳高度 ' + score.sunAltitude.toFixed(1) + '° · 银心 ' + score.coreAltitude.toFixed(1) + '° · 月光 ' + (score.moonInterference * 100).toFixed(0) + '% · 云 ' + cond.cloud + '%' }));
+          text: '太阳高度 ' + score.sunAltitude.toFixed(1) + '° · 银心 ' + score.coreAltitude.toFixed(1) + '° · 月光 ' +
+            (score.moonInterference * 100).toFixed(0) + '%' +
+            (cond.filled ? ' · 云 ' + cond.cloud + '% · Bortle ' + cond.bortle : ' · 云与光污染未填，未计入') }));
         var note = document.getElementById('sky-note');
         if (note) note.textContent = '帧内天体 ' + last.bodies.length + ' 个 · 悬停看方位与高度';
       }
       function invalidate() { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(function () { raf = null; paint(); }); }
 
-      playBtn.addEventListener('click', function () { sky.playing = !sky.playing; api.save(); playBtn.textContent = sky.playing ? '❙❙' : '▶'; loop(); });
+      playBtn.addEventListener('click', function () { sky.playing = !sky.playing; api.save(); playBtn.textContent = sky.playing ? GLYPH_PAUSE : GLYPH_PLAY; loop(); });
       scrub.addEventListener('input', function () { sky.hour = Number(scrub.value); api.save(); paint(); });
       function loop() {
         if (!sky.playing) { loopRaf = null; return; }
@@ -187,7 +199,9 @@
         if (drag) {
           var k = sky.mode === 'frame' ? 0.35 : 0.3;
           sky.bearing = A.norm360(drag.az + (e.clientX - drag.x) * k);
-          sky.centerAlt = clampN(drag.alt - (e.clientY - drag.y) * (sky.mode === 'frame' ? 0.3 : 0.25), -5, 88);
+          // 穹顶是固定看全天空的极坐标图，中心高度在那一套投影里没有意义：
+          // 拖它不产生任何变化，等于给了一个假交互。只有镜头视场那条才改高度
+          if (sky.mode === 'frame') sky.centerAlt = clampN(drag.alt - (e.clientY - drag.y) * 0.3, -5, 88);
           paint();
           return;
         }
@@ -211,7 +225,7 @@
       function spaceHandler(e) {
         if (e.code === 'Space' && api.state.view === 'sky') {
           e.preventDefault();
-          sky.playing = !sky.playing; playBtn.textContent = sky.playing ? '❙❙' : '▶'; loop();
+          sky.playing = !sky.playing; playBtn.textContent = sky.playing ? GLYPH_PAUSE : GLYPH_PLAY; loop();
         }
       }
       api._cleanup = function () {

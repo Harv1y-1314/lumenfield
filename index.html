@@ -51,6 +51,15 @@
         <h1 id="view-title">工作台</h1>
         <p id="view-sub"></p>
       </div>
+      <button class="icon-btn drawer-toggle" id="drawer-toggle" type="button"
+              title="参数面板" aria-label="打开参数面板" aria-expanded="false" aria-controls="inspector">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
+          <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/>
+          <circle cx="6" cy="4.5" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="10.5" cy="8" r="1.5" fill="currentColor" stroke="none"/>
+          <circle cx="6" cy="11.5" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
       <div class="toolbar-actions" id="toolbar-actions"></div>
     </header>
     <div class="content" id="content"></div>
@@ -58,6 +67,8 @@
 
   <aside class="inspector" id="inspector" aria-label="参数面板"></aside>
 </div>
+
+<div class="drawer-scrim" id="drawer-scrim" aria-hidden="true"></div>
 
 <dialog id="help-dialog">
   <div class="dialog-body">

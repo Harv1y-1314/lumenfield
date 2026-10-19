@@ -40,14 +40,14 @@
     { id: 'reykjavik', name: '冰岛·辛格维利尔', region: '冰岛', lat: 64.255, lon: -21.130, tz: 0, height: 180, kind: '星空', note: '9–3 月极光活跃（Kp 要联网查）；冬季路面结冰' },
     { id: 'lofoten', name: '挪威·洛弗敦', region: '挪威', lat: 68.200, lon: 13.600, tz: 120, height: 5, kind: '风光', note: '峡湾日出配渔屋；极夜前后有整段暮光蓝调' },
     { id: 'tromso', name: '挪威·特罗姆瑟', region: '挪威', lat: 69.649, lon: 18.955, tz: 120, height: 50, kind: '星空', note: '11 月中—1 月中极夜，白天也能拍极光' },
-    { id: 'banff', name: '班夫·Peyto Lake', region: '加拿大', lat: 51.682, lon: -116.234, tz: -420, height: 1860, kind: '风光', note: '秋色在 9 月下旬；观景点北向，正午最亮' },
+    { id: 'banff', name: '班夫·佩托湖', region: '加拿大', lat: 51.682, lon: -116.234, tz: -420, height: 1860, kind: '风光', note: '秋色在 9 月下旬；观景点北向，正午最亮' },
     { id: 'yosemite', name: '优胜美地·隧道观景点', region: '美国', lat: 37.716, lon: -119.662, tz: -420, height: 2000, kind: '风光', note: '2 月中"火瀑布"需融雪加晴天，窗口约 15 分钟' },
     { id: 'grandcanyon', name: '大峡谷·Mather Point', region: '美国', lat: 36.063, lon: -112.109, tz: -420, height: 2100, kind: '风光', note: '日出侧光打亮岩层；南缘光污染低些，可拍星' },
     { id: 'maunakea', name: '夏威夷·冒纳凯亚', region: '美国', lat: 19.820, lon: -155.468, tz: -600, height: 4200, kind: '星空', note: '北半球最好的观星点之一；海拔急升需要适应' },
     { id: 'tekapo', name: '新西兰·蒂卡波湖', region: '新西兰', lat: -44.005, lon: 170.479, tz: 720, height: 700, kind: '星空', note: '国际暗天区，麦哲伦云与南天银心全年轮替' },
     { id: 'ushuaia', name: '阿根廷·乌斯怀亚', region: '南美', lat: -54.802, lon: -68.303, tz: -180, height: 50, kind: '风光', note: '高纬夏季接近白夜，拍星空要排在 12 月前后' },
     { id: 'ladakh', name: '印度·拉达克', region: '南亚', lat: 34.100, lon: 77.580, tz: 330, height: 3500, kind: '星空', note: '高原晴夜多；时区是 +5:30 而不是整小时' },
-    { id: 'sahara', name: '摩洛哥·Merzouga', region: '北非', lat: 31.100, lon: -4.010, tz: 60, height: 700, kind: '星空', note: '沙丘日出线条最软；夜里有风沙，注意镜头密封' },
+    { id: 'sahara', name: '摩洛哥·梅尔祖卡', region: '北非', lat: 31.100, lon: -4.010, tz: 60, height: 700, kind: '星空', note: '沙丘日出线条最软；夜里有风沙，注意镜头密封' },
     { id: 'namib', name: '纳米比亚·苏索斯维利', region: '南非', lat: -24.730, lon: 15.290, tz: 60, height: 870, kind: '风光', note: '45 号沙丘阴影在日出后 30 分钟最长；南天银河 5–9 月' }
   ];
 

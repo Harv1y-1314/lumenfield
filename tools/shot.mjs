@@ -167,10 +167,27 @@ app.whenReady().then(async () => {
         await sleep(200);
       }
       const probe = await win.webContents.executeJavaScript(PROBE);
+      // 窄屏参数抽屉必须真的能打开：<=1180px 时检查器是 fixed + translateX(100%)，
+      // 没有 inspector-open 就永远是屏幕外。以前全绿恰恰是因为探测不看可见性
+      let drawerBad = null;
+      if (c.w <= 1180) {
+        await win.webContents.executeJavaScript(`document.getElementById('drawer-toggle').click(); 1`);
+        await sleep(450);
+        const d = await win.webContents.executeJavaScript(`(function () {
+          var i = document.getElementById('inspector').getBoundingClientRect();
+          return { open: document.body.classList.contains('inspector-open'),
+                   onScreen: i.left < window.innerWidth - 40 && i.width > 100,
+                   left: Math.round(i.left), vw: window.innerWidth };
+        })()`);
+        if (!d.open || !d.onScreen) drawerBad = '窄屏抽屉打不开（open=' + d.open + ' left=' + d.left + '/' + d.vw + '）';
+        await win.webContents.executeJavaScript(`document.getElementById('drawer-toggle').click(); 1`);
+        await sleep(350);
+      }
       const img = await win.webContents.capturePage();
       const buf = img.toPNG();
       writeFileSync(join(OUT, `${c.view}-${c.theme}-${c.w}${c.frame ? '-frame' : ''}.png`), buf);
       const problems = problems0 || [];
+      if (drawerBad) problems.push(drawerBad);
       if (probe.crashed) problems.push('界面兜底卡出现');
       if (errors.length) problems.push('控制台报错 ' + errors.length + ' 条');
       if (buf.length < 9000) problems.push('截图疑似空白（' + buf.length + ' B）');
