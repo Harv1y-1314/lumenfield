@@ -42,9 +42,18 @@ body.no-inspector .app { grid-template-columns: var(--sidebar-w) minmax(0, 1fr) 
 }
 .sidebar-brand { display: flex; align-items: center; gap: var(--s-2); padding: 4px 6px 2px; }
 .brand-mark {
-  width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
-  color: #fff; background: linear-gradient(160deg, #2c6ed5, #7b4bd0 60%, #d98b3f);
+  width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center;
+  color: #fff; overflow: hidden;
+  background:
+    radial-gradient(120% 62% at 50% 120%, rgba(255, 201, 127, 0.55), rgba(255, 201, 127, 0) 64%),
+    linear-gradient(165deg, #0a1028, #14204a 55%, #1b2655);
   box-shadow: var(--shadow-1), inset 0 0 0 1px var(--hairline);
+}
+/* 图形用 mask 而不是内联 SVG：几何只在 assets/icons/mark.svg 存一份，颜色仍跟 currentColor 走 */
+.brand-glyph {
+  width: 19px; height: 19px; background: currentColor;
+  -webkit-mask: url('../icons/mark.svg') no-repeat center / contain;
+  mask: url('../icons/mark.svg') no-repeat center / contain;
 }
 .brand-name { font-size: var(--t-title2); font-weight: 600; line-height: 20px; }
 .brand-sub { font-size: var(--t-footnote); color: var(--label-2); letter-spacing: 0.04em; text-transform: uppercase; }

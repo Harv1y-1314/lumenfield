@@ -1,6 +1,8 @@
-# 光野 LumenField
+# Mizar 光野
 
 风光与旅拍的本地工作台（纯前端，无构建、无依赖、无网络）。本文件是冷启动入口：接手这个项目的任何新任务，先读它。
+
+品牌口径：**对外名字是 Mizar，中文叫光野**；仓名与 Pages 地址仍是 `lumenfield`（发布链接已写进参赛材料，不改名）。用户可见的文案一律用 Mizar；代码注释、`localStorage` 键 `lumenfield.v1`、模块内 `LF` 全局名不动。图标几何只有一个真源 `assets/icons/mark.svg`（侧栏用 CSS mask 引它），改形状就改它，然后 `electron tools/make-icon.mjs` 重出 PNG。
 
 ## 当前状态（2026-10-19）
 

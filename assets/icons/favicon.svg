@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Mizar">
+  <!--
+    小尺寸专用标（favicon / 标签页）：主图标在 32px 下会被末光带糊掉，
+    所以小尺寸只留四角闪光，伴星与地平线都不带。几何与 mark.svg、mizar.svg 同源。
+  -->
+  <defs>
+    <linearGradient id="s" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#0A1028"/>
+      <stop offset="1" stop-color="#1B2655"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7.2" fill="url(#s)"/>
+  <path d="M16 5 C16 16 16 16 27 16 C16 16 16 16 16 27 C16 16 16 16 5 16 C16 16 16 16 16 5 Z" fill="#F2F6FF"/>
+</svg>

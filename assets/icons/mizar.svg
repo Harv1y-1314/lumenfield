@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Mizar 光野">
+  <!--
+    品牌主图标：Mizar（北斗柄第三星 ζ UMa）与它的暗伴星 Alcor。
+    这对双星自古被当裸眼视力题——本产品的立身之处正是"看得清、算得准"。
+    暖色地平线与末光带 = 黄金与蓝调时刻；主星用四角闪光形，与侧栏小标同一套几何。
+    数值口径：圆角 116/512 ≈ 22.6%，取 Apple 连续曲率圆角的近似比例（经验值，非官方规格）。
+  -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#060A1E"/>
+      <stop offset="0.5" stop-color="#0E1739"/>
+      <stop offset="1" stop-color="#182250"/>
+    </linearGradient>
+    <linearGradient id="lastLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F2B972" stop-opacity="0"/>
+      <stop offset="0.62" stop-color="#E8A457" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#FFC97F" stop-opacity="0.40"/>
+    </linearGradient>
+    <radialGradient id="horizonGlow" cx="0.5" cy="1.05" r="0.62">
+      <stop offset="0" stop-color="#FFC97F" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#D98B3F" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="starGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#EAF1FF" stop-opacity="0.26"/>
+      <stop offset="0.55" stop-color="#BFD2FF" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#BFD2FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="starFill" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#CFDDFF"/>
+    </linearGradient>
+    <clipPath id="tile"><rect width="512" height="512" rx="116"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="url(#sky)"/>
+    <rect y="256" width="512" height="256" fill="url(#lastLight)"/>
+    <rect y="300" width="512" height="212" fill="url(#horizonGlow)"/>
+
+    <!-- 远处零星空：只留三颗，多了就成装饰噪声 -->
+    <circle cx="410" cy="112" r="3.4" fill="#E8EEFF" opacity="0.6"/>
+    <circle cx="104" cy="286" r="2.6" fill="#E8EEFF" opacity="0.4"/>
+    <circle cx="292" cy="58" r="2.2" fill="#E8EEFF" opacity="0.34"/>
+
+    <!-- 地平线弧：广角下地平线本就会弯，这条弧同时当构图的第三线 -->
+    <path d="M36 418 Q256 374 476 418" fill="none" stroke="#FFD3A0" stroke-opacity="0.72" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- Mizar 主星：四角闪光，两控制点收到中心，臂比二次曲线更瘦 -->
+    <circle cx="212" cy="182" r="158" fill="url(#starGlow)"/>
+    <path d="M212 46 C212 182 212 182 348 182 C212 182 212 182 212 318 C212 182 212 182 76 182 C212 182 212 182 212 46 Z" fill="url(#starFill)"/>
+
+    <!-- Alcor 伴星：看得见它才算眼神好 -->
+    <circle cx="344" cy="298" r="40" fill="url(#starGlow)"/>
+    <path d="M344 254 C344 298 344 298 388 298 C344 298 344 298 344 342 C344 298 344 298 300 298 C344 298 344 298 344 254 Z" fill="#EAF1FF" opacity="0.7"/>
+  </g>
+</svg>
