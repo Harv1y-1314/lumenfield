@@ -157,8 +157,10 @@
   --shadow-3: 0 18px 48px rgb(0 0 0 / 60%);
 }
 
-/* HIG：深色分 base（退后）与 elevated（前进）。对话框与抽屉属 elevated */
-dialog, .inspector, .toast {
+/* HIG：深色分 base（退后）与 elevated（前进）。对话框与抽屉属 elevated。
+   必须限定在深色模式：少了 [data-theme="dark"] 时，浅色下检查器里的 --bg 会被抬成
+   rgb(28 28 30)，于是 .control 的数字输入与导出按钮全变成黑底（实测踩过）。 */
+[data-theme="dark"] dialog, [data-theme="dark"] .inspector, [data-theme="dark"] .toast {
   --bg: rgb(28 28 30);
   --bg-2: rgb(44 44 46);
   --bg-3: rgb(58 58 60);

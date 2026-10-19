@@ -256,16 +256,20 @@
         points.textContent = '';
         if (!R.local.length) points.appendChild(api.el('div', { class: 'tiny', text: '还没有控制点。选"加光点"后在图上点一下。' }));
         R.local.forEach(function (pt, i) {
-          points.appendChild(api.el('div', { class: 'card tight', style: { marginBottom: '6px' } }, [
+          // 滑杆必须挂在这张卡片里。原来把 points 当容器传进 bindSliderInto，
+          // 而 api.el 的第三个参数在卡片节点建好之前就被求值了，
+          // 结果四个滑杆全落到卡片外面、还排在卡片前面
+          var card = api.el('div', { class: 'card tight', style: { marginBottom: '6px' } }, [
             api.el('div', { class: 'row spread' }, [
               api.el('span', { class: 'slider-label', text: '点 ' + (i + 1) + ' · 方位 ' + (pt.x * 100).toFixed(0) + ',' + (pt.y * 100).toFixed(0) }),
               api.el('button', { class: 'control plain', style: { color: 'var(--red)' }, text: '删除', onclick: function () { R.local.splice(i, 1); renderPoints(); redraw(true); } })
-            ]),
-            bindSliderInto(points, pt, 'exposure', i, { label: '曝光', min: -100, max: 100, bipolar: true, sign: true }),
-            bindSliderInto(points, pt, 'temp', i, { label: '色温', min: -100, max: 100, bipolar: true, sign: true }),
-            bindSliderInto(points, pt, 'sat', i, { label: '饱和', min: -100, max: 100, bipolar: true, sign: true }),
-            bindSliderInto(points, pt, 'dehaze', i, { label: '去雾', min: 0, max: 100 })
-          ]));
+            ])
+          ]);
+          bindSliderInto(card, pt, 'exposure', i, { label: '曝光', min: -100, max: 100, bipolar: true, sign: true });
+          bindSliderInto(card, pt, 'temp', i, { label: '色温', min: -100, max: 100, bipolar: true, sign: true });
+          bindSliderInto(card, pt, 'sat', i, { label: '饱和', min: -100, max: 100, bipolar: true, sign: true });
+          bindSliderInto(card, pt, 'dehaze', i, { label: '去雾', min: 0, max: 100 });
+          points.appendChild(card);
         });
       }
       function bindSliderInto(box, pt, field, idx, opts) {
@@ -329,7 +333,6 @@
 
       /* 渲染调度 */
       function redraw(full) {
-        view.low = !full;
         if (host.pending) cancelAnimationFrame(host.pending);
         host.pending = requestAnimationFrame(function () { host.pending = null; paintPreview(api, full !== false); });
       }
@@ -398,6 +401,14 @@
       fr.onload = function () {
         var img = new Image();
         img.onload = function () {
+          // 尺寸拿不到也算"加载成功"（部分 SVG、被截断的 TIFF/HEIF），这时 makeThumb
+          // 的 canvas 高度是 NaN，drawImage 抛 IndexSizeError，pending 永不归零，
+          // 整批文件静默卡死且没有任何提示
+          if (!img.naturalWidth || !img.naturalHeight) {
+            api.toast(f.name + ' 读不出尺寸，跳过');
+            if (!--pending) api.rerender();
+            return;
+          }
           st.images.push({
             id: 'i' + Date.now() + Math.random().toString(36).slice(2, 6),
             name: f.name, img: img, w: img.naturalWidth, h: img.naturalHeight,
@@ -504,7 +515,6 @@
     if (!e || !host.canvas) return;
     var longSide = Math.max(host.canvas.clientWidth || 800, 400);
     var maxW = full ? Math.min(1500, Math.max(e.w, 1)) : 720;
-    if (!full && e.cache['w' + maxW]) maxW = maxW;
     var src = sourceData(e, maxW);
     var R = JSON.parse(JSON.stringify(e.recipe));
     R.geometry = geoFor(e, e.recipe);
@@ -605,13 +615,15 @@
         share > 0.55 ? '覆盖偏高，可能把天空/墙面也算进去了，先降匀肤与磨皮强度。' : '量级正常。'));
   }
 
-  function exportCurrent(api) {
-    var e = current(); if (!e) return;
+  function exportCurrent(api, done) {
+    var e = current(); if (!e) { if (done) done(); return; }
     var R = JSON.parse(JSON.stringify(e.recipe));
     R.geometry = geoFor(e, e.recipe);
     var maxSide = (R.output && R.output.maxSide) || 0;
     var targetW = maxSide ? Math.min(e.w, maxSide) : e.w;
-    api.toast('按原始尺寸重算中…');
+    // 全尺寸重算是主线程同步算的，24MP 实测要 40 秒上下，所以 toast 里先把尺寸报出来，
+    // 别让人对着一句"重算中"干等；上限由导出面板的滑杆给，不藏
+    api.toast('按 ' + targetW + '×' + Math.round(targetW * e.h / e.w) + ' 重算中…');
     setTimeout(function () {
       var src = sourceData(e, targetW);
       var out = F.renderPipeline(src, R);
@@ -620,8 +632,16 @@
       c.getContext('2d').putImageData(new ImageData(out.data, out.width, out.height), 0, 0);
       var fmt = (R.output && R.output.format) === 'png' ? 'image/png' : 'image/jpeg';
       c.toBlob(function (blob) {
+        // 大图或 PNG 编码失败时 toBlob 会给 null：不判就是 blob.size 抛异常 +
+        // createObjectURL(null) 再抛一次，用户看到的是"点了没反应"
+        if (!blob) {
+          api.toast('这张画不出来：把长边上限调小，或改导出 JPEG 再试');
+          if (done) done();
+          return;
+        }
         api.downloadBlob(safeName(e.name) + '-Mizar.' + (fmt === 'image/png' ? 'png' : 'jpg'), blob);
         api.toast('已导出 ' + out.width + '×' + out.height + '（' + (blob.size / 1048576).toFixed(2) + ' MB）');
+        if (done) done();
       }, fmt, ((R.output && R.output.quality) || 92) / 100);
     }, 30);
   }
@@ -632,9 +652,12 @@
       if (i >= st.images.length) { api.toast('全部导出完成（' + st.images.length + ' 张）'); return; }
       st.selectedImage = i;
       api.toast('正在导出 ' + (i + 1) + '/' + st.images.length + '：' + st.images[i].name);
-      exportCurrent(api);
-      i++;
-      setTimeout(next, 900);
+      // 等上一张真的算完再排下一张。原来固定 900ms 排一单，全尺寸下一张要几十秒，
+      // 结果所有任务挤在同一条主线程队列里，页面直接死掉数十分钟
+      exportCurrent(api, function () {
+        i++;
+        setTimeout(next, 250);
+      });
     })();
   }
 

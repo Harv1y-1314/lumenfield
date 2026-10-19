@@ -27,7 +27,8 @@
         var core = A.galacticCoreEvents(y, m, d, site.lat, site.lon, site.tz);
         var ill = A.moonIllumination(new Date(Date.UTC(y, m - 1, d, 12) - site.tz * 60000));
         rows.push({
-          date: m + '/' + d, weekday: ['日', '一', '二', '三', '四', '五', '六'][t.getUTCDay()],
+          date: m + '/' + d, y: y, m: m, d: d,
+          weekday: ['日', '一', '二', '三', '四', '五', '六'][t.getUTCDay()],
           sunrise: api.time(sun.sunrise), sunset: api.time(sun.sunset),
           day: sun.dayLength ? sun.dayLength.toFixed(1) + 'h' : (sun.polarNight ? '极夜' : '极昼'),
           golden: minutes(sun.sunrise, sun.golden.morning[0]) + ' + ' + minutes(sun.golden.evening[0], sun.sunset),
@@ -141,16 +142,11 @@
     for (var p in patch) next[p] = patch[p];
     next.id = 'custom'; next.name = '自定义机位'; next.region = ''; next.note = '手填坐标';
     LF.state.site = next; LF.state.siteKey = 'custom';
+    LF.state.customSite = next;          // 切走再切回 'custom' 时要用这份，不能用旧的
     LF.save(); LF.rerender();
   }
 
   function clampV(x, lo, hi) { return x < lo ? lo : x > hi ? hi : x; }
-  function parseDate(md, site) {
-    var parts = md.split('/');
-    var y = api_year();
-    return { y: y, m: Number(parts[0]), d: Number(parts[1]) };
-  }
-  function api_year() { return LF.date().y; }
 
   function minutes(a, b) {
     if (!a || !b) return '—';
@@ -170,9 +166,19 @@
     var ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     var cx = size / 2, cy = size / 2, R = size / 2 - 26;
-    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg');
+    // 这张图不是星图，它坐在卡片里，必须跟明暗走。早先直接抄了星图那套
+    // "深底浅字"的硬编码色，浅色模式下网格与方位标签几乎看不见，整张图像是空的。
+    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var host = canvas.closest ? (canvas.closest('.card') || document.body) : document.body;
+    var surface = getComputedStyle(host).getPropertyValue('--surface').trim() || (dark ? '#1c1c1e' : '#ffffff');
+    var gridCol = dark ? 'rgba(126,150,200,0.34)' : 'rgba(50,80,140,0.24)';
+    var labelCol = dark ? 'rgba(190,205,235,0.78)' : 'rgba(40,62,104,0.80)';
+    var moonCol = dark ? 'rgba(159,184,255,0.9)' : 'rgba(58,106,214,0.85)';
+    var sunCol = dark ? '#f0b46a' : '#c8791c';
+    var coreCol = dark ? 'rgba(255,214,150,0.72)' : 'rgba(176,110,16,0.8)';
+    ctx.fillStyle = surface;
     ctx.fillRect(0, 0, size, size);
-    ctx.strokeStyle = 'rgba(126,150,200,0.28)';
+    ctx.strokeStyle = gridCol;
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
     [0, 30, 60].forEach(function (alt) {
@@ -184,7 +190,7 @@
       ctx.moveTo(cx + Math.sin(a) * R * 0.94, cy - Math.cos(a) * R * 0.94);
       ctx.lineTo(cx + Math.sin(a) * R, cy - Math.cos(a) * R);
       ctx.stroke();
-      ctx.fillStyle = 'rgba(190,205,235,0.75)';
+      ctx.fillStyle = labelCol;
       ctx.fillText(A.compass(az) + ' ' + az, cx + Math.sin(a) * (R + 13), cy - Math.cos(a) * (R + 13) + 3);
     }
     function arc(points, color, dashed, withTime) {
@@ -213,15 +219,15 @@
       }
       ctx.restore();
     }
-    arc(moon, 'rgba(159,184,255,0.85)', true, false);
-    arc(sun, '#f0b46a', false, true);
+    arc(moon, moonCol, true, false);
+    arc(sun, sunCol, false, true);
     // 银心轨迹：一天内高度变化，取每 20 分钟一点
     var corePts = [];
     for (var hh = 0; hh < 24; hh++) {
       var t = new Date(Date.UTC(y, m - 1, day, hh) - site.tz * 60000);
       corePts.push({ alt: coreFn(t), az: azimuthAt(t, site), time: t });
     }
-    arc(corePts, 'rgba(255,214,150,0.7)', true, false);
+    arc(corePts, coreCol, true, false);
   }
 
   function azimuthAt(t, site) {
@@ -245,7 +251,9 @@
     if (kind === '星空') {
       if (bestDay && bestDay.score > 0.25) {
         out.push('本周最好的星空档是 ' + bestDay.date + '（周' + bestDay.weekday + '），' + bestDay.best + ' 前后：全黑且银心高于 5° 共 ' + bestDay.dark + ' 分钟，银心最高 ' + bestDay.coreMax + '，月照 ' + bestDay.moon + '。');
-        var t = parseDate(bestDay.date, site);
+        // 直接用那一行自己的年月日。原来是从 'M/D' 反推、年份取"今天"的年份：
+        // 12 月底排跨年档期时，最好的那天会被算到今年，银心时刻整段错一天到几十天
+        var t = { y: bestDay.y, m: bestDay.m, d: bestDay.d };
         var core = A.galacticCoreEvents(t.y, t.m, t.d, site.lat, site.lon, site.tz);
         out.push('银心在 ' + A.fmtTime(core.transit.time, site.tz) + ' 过中天（高度 ' + core.transit.alt.toFixed(0) + '°），' +
           (core.rise ? '升起 ' + A.fmtTime(core.rise, site.tz) + '、' : '') +

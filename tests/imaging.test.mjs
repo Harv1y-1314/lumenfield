@@ -305,5 +305,101 @@ ok('全开参数没有把图算废', (() => { const r = F.toneReadout(rendered);
   JSON.stringify(F.toneReadout(rendered)));
 console.log('   分段耗时：', rendered.stats.stages.map(s => `${s.stage} ${s.ms}ms`).join(' · '));
 
+/* ---------- 回归：全面复检抓出的四处算子缺陷（2026-10-19） ---------- */
+// 这四条都是"看着出图、其实算错"的那类，界面回归抓不到，必须钉在算子层。
+
+// 1) 盒式模糊的乒乓缓冲：早先第二趟起读写同一块缓冲，冲激响应上下不对称、能量 +1.5%
+{
+  const n = 65, flat = new Float32Array(n * n).fill(0.5);
+  const bf = F.blur(flat, n, n, 4);
+  let dev = 0;
+  for (let i = 0; i < bf.length; i++) dev = Math.max(dev, Math.abs(bf[i] - 0.5));
+  ok('模糊不改变平场（乒乓缓冲没就地读写）', dev < 1e-5, '最大偏离 ' + dev.toExponential(2));
+
+  const imp = new Float32Array(n * n); imp[32 * n + 32] = 1;   // 奇数边长，中心严格对称
+  const bi = F.blur(imp, n, n, 4);
+  let sum = 0, up = 0, down = 0, left = 0, right = 0;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const v = bi[y * n + x]; sum += v;
+    if (x === 32) { if (y < 32) up += v; else if (y > 32) down += v; }
+    if (y === 32) { if (x < 32) left += v; else if (x > 32) right += v; }
+  }
+  check('冲激响应上下对称差', Math.abs(up - down), 0, 1e-6);
+  check('冲激响应左右对称差', Math.abs(left - right), 0, 1e-6);
+  check('冲激响应能量守恒（旧实现 +1.5%）', sum, 1, 0.005);
+}
+
+// 2) 纹理/锐化必须是"细节滑杆"：平场拉满不许变亮（旧实现把线性 0..1 与 sRGB 8 位
+//    直接相减，留下 +73 的常数偏置，128 的平场被拉到 208）
+{
+  const flat = mk(64, 64, () => [128, 128, 128]);
+  const t = F.renderPipeline(flat, { texture: 100 });
+  const s = F.renderPipeline(flat, { sharpen: 100 });
+  check('纹理拉满不改变平场亮度', F.toneReadout(t).mean, 128, 1.5, '');
+  check('锐化拉满不改变平场亮度', F.toneReadout(s).mean, 128, 1.5, '');
+  // 但真该有高频的地方必须有反应，否则这条判据退化成"纹理是空滑杆"
+  const noisy = mk(64, 64, (x, y) => { const v = (x % 4 < 2) ? 150 : 110; return [v, v, v]; });
+  const before = maxDiff(noisy, F.renderPipeline(noisy, { texture: 0 }));
+  const after = (() => { const r = F.renderPipeline(noisy, { texture: 100 }); let m = 0;
+    for (let i = 0; i < r.data.length; i += 4) m = Math.max(m, Math.abs(r.data[i] - noisy.data[i])); return m; })();
+  ok('纹理在真实条纹上有反应（不是被钉死的空滑杆）', after > before, '最大改动 ' + after + ' vs ' + before);
+}
+
+// 3) 裁剪与几何：cropRegion 必须交出真实宽高；transform 不许再把裁剪偏移当原图坐标用
+{
+  const src = mk(400, 300, (x, y) => {
+    if (x < 60 && y < 60) return [255, 0, 0];          // 左上地标块
+    const g = Math.round(40 + 160 * y / 300); return [g, g, g];
+  });
+  const crop = { x: 40, y: 30, w: 320, h: 180 };       // 正好 16:9
+  const cr = F.cropRegion(src, crop);
+  ok('cropRegion 交出的宽高就是缓冲区尺寸', cr.width * cr.height * 4 === cr.data.length,
+    cr.width + '×' + cr.height);
+  const out = { data: new Uint8ClampedArray(cr.width * cr.height * 4), width: cr.width, height: cr.height };
+  F.transform(cr, out, { rotate: 0, zoom: 1, crop: crop });
+  const moved = maxDiff(out, (() => {
+    const o = { data: new Uint8ClampedArray(cr.width * cr.height * 4), width: cr.width, height: cr.height };
+    F.transform(cr, o, { rotate: 0, zoom: 1 });        // 不传 crop：同一块缓冲的正确答案
+    return o;
+  })());
+  ok('带 crop 的 transform 不再把画面整体平移', moved === 0, '最大差 ' + moved);
+  ok('裁剪后左上地标仍在原位', px(out, 8, 8)[0] > 200, JSON.stringify(px(out, 8, 8)));
+
+  // 整条管线跑一遍：4:3 取 3:2 时旧实现会算出底部 168 行纯黑
+  const big = mk(400, 300, (x, y) => { const v = 60 + Math.round(150 * (x + y) / 700); return [v, v, v]; });
+  const r = F.renderPipeline(big, { geometry: { rotate: 0, zoom: 1, crop: { x: 0, y: 0, w: 400, h: 267 } } });
+  let blackRows = 0;
+  for (let y = 0; y < r.height; y++) {
+    let allBlack = true;
+    for (let x = 0; x < r.width; x++) {
+      const p = (y * r.width + x) * 4;
+      if (r.data[p] + r.data[p + 1] + r.data[p + 2] > 12) { allBlack = false; break; }
+    }
+    if (allBlack) blackRows++;
+  }
+  ok('裁剪后输出没有整行纯黑（旧实现 4000×3000 取 3:2 差出 168 行）', blackRows === 0,
+    r.width + '×' + r.height + '，纯黑行 ' + blackRows);
+}
+
+// 4) 轮廓收/扩：必须先快照再写。就地读写会让点击处一侧读到已改写的像素、变形被二次叠加
+{
+  const mk2 = () => mk(64, 64, (x, y) => { const v = 90 + Math.round(9 * Math.abs(x - 32)); return [v, v, v]; });
+  const img = mk2();
+  // 打点列在配方里叫 spots（不是 warps）：写错键名会静默不算，diff 看着像"只差一点"
+  const viaPipeline = F.applyPortrait(mk2(), { spots: [{ x: 0.5, y: 0.5, r: 0.5, type: 'warp', amount: -60 }] });
+  const ref = { data: new Uint8ClampedArray(64 * 64 * 4), width: 64, height: 64 };
+  F.warpPoint(img, ref, 32, 32, 0.5 * 64, -0.6);      // 与 applyPortrait 同一套半径口径
+  ok('打点轮廓与"先快照再写"的参考结果一致', maxDiff(viaPipeline, ref) === 0,
+    '最大差 ' + maxDiff(viaPipeline, ref));
+
+  // 源图关于 x=32 严格对称，中心打点后仍必须对称；就地读写会让一侧先被改过
+  let asym = 0;
+  for (let y = 0; y < 64; y++) for (let k = 1; k <= 31; k++) {
+    const l = (y * 64 + (32 - k)) * 4, r = (y * 64 + (32 + k)) * 4;
+    asym = Math.max(asym, Math.abs(viaPipeline.data[l] - viaPipeline.data[r]));
+  }
+  ok('对称源图中心打点后仍左右对称（旧实现一侧被叠加）', asym === 0, '最大不对称 ' + asym);
+}
+
 console.log(`\n影像算子核对：通过 ${pass} 项，失败 ${fail} 项`);
 process.exit(fail ? 1 : 0);

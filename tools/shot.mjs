@@ -3,9 +3,10 @@
  * 截图落盘，同时把控制台报错与"这一屏没算完"的兜底卡抓出来当失败信号。
  *
  * 跑法：electron tools/shot.mjs
- *       SHOT_OUT=docs/screens electron tools/shot.mjs   （更新仓库截图）
  *       SHOT_URL=http://127.0.0.1:8795/index.html electron tools/shot.mjs
  *
+ * 截图落 $TMPDIR/lf-shots（或 SHOT_OUT 指定的目录），文件名是 视图-主题-宽[-投影].png；
+ * 仓里的 docs/screens/01-home.png 那套编号名是从这些图缩半得来的，别直接 SHOT_OUT 到 docs。
  * 默认走 file://，因为"双击 index.html 就能用"这条承诺必须在同一套检查里被验证。
  * 全程只开一个窗口反复改尺寸与换主题：一次开一堆窗口会让 macOS 上的
  * Electron 崩在 Mach rendezvous（实测过）。
@@ -148,6 +149,22 @@ app.whenReady().then(async () => {
         if (afterHash === t.dirtyHash) problems0 = ['调参与不调参算出同一张图'];
         else problems0 = [];
         t.imported = await win.webContents.executeJavaScript(`LF.state.images.length`);
+      }
+      if (c.view === 'sky') {
+        // 悬停扫一遍画布：hitTest 与 tooltip 是纯鼠标路径，截图永远盖不到。
+        // 银心标记曾经只带屏幕坐标不带 alt/az，扫到它就每帧抛一次 TypeError。
+        // 点数刻意压在 30：每次悬停都会重画 tooltip，扫太密会把回归本身拖成分钟级
+        await win.webContents.executeJavaScript(`(function () {
+          var cv = document.querySelector('#content canvas');
+          if (!cv) return 0;
+          var r = cv.getBoundingClientRect();
+          for (var i = 0; i < 30; i++) {
+            var x = r.left + r.width * ((i % 6) / 5), y = r.top + r.height * (Math.floor(i / 6) / 4);
+            cv.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true, cancelable: true }));
+          }
+          return 1;
+        })()`);
+        await sleep(200);
       }
       const probe = await win.webContents.executeJavaScript(PROBE);
       const img = await win.webContents.capturePage();

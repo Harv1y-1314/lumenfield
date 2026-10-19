@@ -545,7 +545,9 @@
   function hitTest(bodies, x, y, radius) {
     var r = radius || 14, best = null, bd = 1e9;
     bodies.forEach(function (b) {
-      if (b.x === undefined) return;
+      // 只收"可悬停天体"：银心那条标记只有屏幕坐标，没有 alt/az，
+      // 放进来会让 tooltip 拼 b.alt.toFixed() 直接抛异常（夏夜移到银心光带上必现）
+      if (b.x === undefined || b.alt === undefined || b.az === undefined) return;
       var d = Math.hypot(b.x - x, b.y - y);
       if (d < r && d < bd) { bd = d; best = b; }
     });

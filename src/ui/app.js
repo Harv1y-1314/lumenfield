@@ -25,6 +25,7 @@
     view: 'home',
     siteKey: 'beijing',
     site: null,
+    customSite: null,     // siteKey==='custom' 时用户手填的那一份，跟着持久化
     dateISO: new Date().toISOString().slice(0, 10),
     theme: 'auto',
     images: [],           // 精修的批量队列，不入库
@@ -40,14 +41,48 @@
   };
 
   var KEY = 'lumenfield.v1';
+  var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  var VIEW_IDS = ['home', 'route', 'sky', 'retouch', 'tools'];
+  var THEMES = ['auto', 'light', 'dark'];
+  function numIn(v, lo, hi, dflt) {
+    var n = Number(v);
+    return isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt;
+  }
+  // 存档里每一个数都要过一遍：手改或旧版残留的 NaN 会顺着历算传到
+  // createRadialGradient(NaN…) 与 style.width='NaN%'，前者抛异常只剩兜底卡、
+  // 后者静默失效。isFinite 之后夹回各滑杆自己的量程，不合法就留默认值。
+  var SKY_RANGE = {
+    hour: [0, 24], lens: [8, 400], bearing: [0, 360], centerAlt: [-5, 88], speed: [1, 15]
+  };
+  function sanitizeSky(o) {
+    var out = {};
+    for (var k in SKY_RANGE) {
+      if (o[k] === undefined) continue;
+      out[k] = numIn(o[k], SKY_RANGE[k][0], SKY_RANGE[k][1], store.sky[k]);
+    }
+    return out;
+  }
+  function sanitizeSite(o) {
+    if (!o || typeof o !== 'object') return null;
+    var lat = Number(o.lat), lon = Number(o.lon), tz = Number(o.tz), h = Number(o.height);
+    if (!isFinite(lat) || !isFinite(lon) || !isFinite(tz)) return null;
+    return {
+      id: 'custom', name: '自定义机位', region: '', note: '手填坐标',
+      lat: Math.min(89.9, Math.max(-89.9, lat)), lon: Math.min(179.9, Math.max(-179.9, lon)),
+      tz: Math.round(Math.min(840, Math.max(-720, tz))),
+      height: isFinite(h) ? Math.min(6000, Math.max(-100, h)) : 0
+    };
+  }
   function load() {
     try {
       var s = root.localStorage.getItem(KEY);
       if (!s) return;
       var o = JSON.parse(s);
-      ['view', 'siteKey', 'dateISO', 'theme'].forEach(function (k) {
-        if (o[k] !== undefined) store[k] = o[k];
-      });
+      if (VIEW_IDS.indexOf(o.view) >= 0) store.view = o.view;
+      if (THEMES.indexOf(o.theme) >= 0) store.theme = o.theme;
+      if (DATE_RE.test(o.dateISO || '')) store.dateISO = o.dateISO;
+      if (typeof o.siteKey === 'string') store.siteKey = o.siteKey;
+      if (store.siteKey === 'custom') store.customSite = sanitizeSite(o.custom);
       // 逐字段合并而不是整块覆盖：老版本存档里没有的字段（lens、mode…）要留默认值
       ['sky', 'route'].forEach(function (k) {
         if (!o[k]) return;
@@ -57,13 +92,19 @@
           for (var g in o[k][sub]) store[k][sub][g] = o[k][sub][g];
         });
       });
+      if (o.sky) { var sk = sanitizeSky(o.sky); for (var q in sk) store.sky[q] = sk[q]; }
+      store.sky.playing = false;                       // 播放态永不从存档恢复
+      store.route.days = numIn(store.route.days, 3, 14, 7);
     } catch (e) { /* file:// 或隐私模式下读不到，静默用默认值 */ }
   }
   function save() {
     try {
       root.localStorage.setItem(KEY, JSON.stringify({
         view: store.view, siteKey: store.siteKey, dateISO: store.dateISO,
-        theme: store.theme, sky: store.sky, route: store.route
+        theme: store.theme, sky: store.sky, route: store.route,
+        // 自定义坐标只存在内存里过，刷新就回到"北京·香山"、下拉还空着：
+        // 手改机位是这条路径的主要用法，必须跟着存
+        custom: store.siteKey === 'custom' ? store.site : store.customSite
       }));
     } catch (e) { /* 存不下就算了，功能不依赖它 */ }
   }
@@ -86,8 +127,12 @@
 
   function siteFromKey(key) {
     var list = (root.LFSites && root.LFSites.list) || [];
+    if (key === 'custom') {
+      return store.customSite || { id: 'custom', name: '自定义机位', region: '', note: '手填坐标',
+        lat: 39.9042, lon: 116.4074, tz: 480, height: 44 };
+    }
     for (var i = 0; i < list.length; i++) if (list[i].id === key) return list[i];
-    return list[0] || { id: 'custom', name: '自定义', lat: 39.9042, lon: 116.4074, tz: 480, height: 44 };
+    return list[0];
   }
 
   function currentDate() {
@@ -320,9 +365,6 @@
     stamp: function (d) { return A ? A.fmt(d, store.site.tz) : '—'; }
   };
 
-  /* 本地时区推断：自定义坐标时给一个合理默认（按经度估），并允许用户改 */
-  function tzForLon(lon) { return Math.round(lon / 15) * 60; }
-
   function boot() {
     load();
     store.site = siteFromKey(store.siteKey);
@@ -353,6 +395,10 @@
     (root.LFSites.list || []).forEach(function (s) {
       sel.appendChild(el('option', { value: s.id, text: s.name + (s.region ? ' · ' + s.region : '') }));
     });
+    // 手改过坐标时 siteKey 是 'custom'，列表里没这一项，下拉会停在空白上——补一项
+    if (store.siteKey === 'custom') {
+      sel.appendChild(el('option', { value: 'custom', text: '自定义机位' }));
+    }
     sel.value = store.siteKey;
     sel.addEventListener('change', function () {
       store.siteKey = sel.value;
@@ -407,11 +453,11 @@
     var h = min / 60;
     return 'UTC' + (h >= 0 ? '+' : '−') + Math.abs(h);
   }
-  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
-
+  // LFutil 只留真有人调的：tzLabel 被 home/route/tools 三个视图按 root.LFutil 取用。
+  // 原先还挂着 esc 与 tzForLon——前者零调用，后者"按经度估时区"恰恰是路书里明确劝退的做法。
   root.LF = api;
   root.LFUI = api;
-  root.LFutil = { fmtLatLon: fmtLatLon, tzLabel: tzLabel, esc: esc, tzForLon: tzForLon };
+  root.LFutil = { fmtLatLon: fmtLatLon, tzLabel: tzLabel };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);

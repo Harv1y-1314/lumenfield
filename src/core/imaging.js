@@ -97,21 +97,24 @@
       }
     }
   }
-  /** 对单通道 Float32 做三次盒式模糊（≈高斯），返回新数组 */
+  /** 对单通道 Float32 做多次盒式模糊（≈高斯），返回新数组 */
   function blur(src, w, h, radius) {
     if (radius < 1) return src.slice();
-    var a = new Float32Array(w * h), b = new Float32Array(w * h);
     var r = D.max(1, Math.round(radius));
     var seq = [r, r, r];
     // 半径太大时用两次小半径代替，视觉上更贴近高斯且省一半时间
     if (r > 12) seq = [Math.round(r / 2), Math.round(r / 2), Math.round(r / 2), Math.round(r / 2)];
-    var cur = src, next = a, tmp = b;
+    // 乒乓缓冲必须是"横向写 scratch、纵向写回 cur"这一种配对。
+    // 早先的 tmp = sw === src ? next : tmp 只在第一趟成立，从第二趟起 next 与 tmp
+    // 是同一块缓冲——纵向那一遍就地读写自己，冲激响应上下不对称、总能量还 +1.5%。
+    // cur 先拷一份：不能就地写调用方传进来的数组（lum 会被后面的清晰度再用一次）。
+    var cur = new Float32Array(src);
+    var scratch = new Float32Array(w * h);
     for (var p = 0; p < seq.length; p++) {
-      boxBlurPass(cur, next, w, h, seq[p]);
-      boxBlurVPass(next, tmp, w, h, seq[p]);
-      var sw = cur; cur = tmp; tmp = sw === src ? next : tmp;
+      boxBlurPass(cur, scratch, w, h, seq[p]);
+      boxBlurVPass(scratch, cur, w, h, seq[p]);
     }
-    return cur === src ? src.slice() : cur;
+    return cur;
   }
   /** 灰度极小值滤波（去雾用的暗通道），盒式最小值三次近似结构元素 */
   function boxMin(src, w, h, radius) {
@@ -365,7 +368,10 @@
       if (amt) {
         var copy = new Uint8ClampedArray(d);
         for (var j = 0, r = 0; j < n; j++, r += 4) {
-          var hf = (copy[r] - small[j] * 255) * amt;
+          // small 是线性 0..1，必须先回到 sRGB 8 位再与 copy 相减。
+          // 直接 small*255 会在两个坐标系之间留一个约 +73 的常数偏置，
+          // 结果"纹理"变成亮度滑杆：平场 128 拉满会亮到 208。
+          var hf = (copy[r] - fromLinear(small[j])) * amt;
           d[r] = clamp(copy[r] + hf, 0, 255);
           d[r + 1] = clamp(copy[r + 1] + hf, 0, 255);
           d[r + 2] = clamp(copy[r + 2] + hf, 0, 255);
@@ -676,8 +682,10 @@
     var w = img.width, h = img.height, ow = out.width, oh = out.height, src = img.data, d = out.data;
     var rad = -(geo.rotate || 0) * D.PI / 180;
     var cs = D.cos(rad), sn = D.sin(rad);
-    var cx0 = (geo.crop ? geo.crop.x : 0) + (geo.crop ? geo.crop.w / 2 : w / 2);
-    var cy0 = (geo.crop ? geo.crop.y : 0) + (geo.crop ? geo.crop.h / 2 : h / 2);
+    // 进来的 img 已经是裁剪后的缓冲，中心就是这块缓冲的中心。
+    // 早先这里又加了一次 crop.x/crop.y，等于把裁剪局部坐标当原图坐标用，
+    // 选任何裁剪比例都会让画面整体平移、框外的内容被拉进来。
+    var cx0 = w / 2, cy0 = h / 2;
     var zoom = geo.zoom || 1;
     var px = [geo.persp];
     // 单应矩阵：把输出四角映射回输入四角（源=当前裁剪框），用 8 参线性方程解
@@ -881,8 +889,8 @@
     var t = t0;
     if (p.geometry && (p.geometry.rotate || p.geometry.crop || (p.geometry.zoom || 1) !== 1 || p.geometry.persp)) {
       var g = p.geometry;
-      var baseData = g.crop ? cropRegion(source, g.crop) : source.data;
-      var base = { data: baseData, width: g.crop ? Math.round(g.crop.w) : source.width, height: g.crop ? Math.round(g.crop.h) : source.height };
+      var base = g.crop ? cropRegion(source, g.crop)
+        : { data: source.data, width: source.width, height: source.height };
       var ow = D.max(16, Math.round(base.width / (g.zoom || 1)));
       var oh = D.max(16, Math.round(base.height / (g.zoom || 1)));
       out = { data: new Uint8ClampedArray(ow * oh * 4), width: ow, height: oh };
@@ -894,7 +902,9 @@
 
     t = Date.now(); applyLocal(out, p.local); mark('局部', t);
     t = Date.now(); if (p.dehaze) dehaze(out, p.dehaze / 100); mark('去雾', t);
-    t = Date.now(); applyLUT3(out, toneLUT(p), toneLUT(p), toneLUT(p)); mark('影调', t);
+    t = Date.now();
+    var tone = toneLUT(p);                     // 三条通道同一张表，别一张表烘三遍
+    applyLUT3(out, tone, tone, tone); mark('影调', t);
     t = Date.now();
     var cr = p.curve || p.curveR, cg = p.curve || p.curveG, cb2 = p.curve || p.curveB;
     if (cr || cg || cb2) {
@@ -933,7 +943,10 @@
         o[d2] = img.data[s]; o[d2 + 1] = img.data[s + 1]; o[d2 + 2] = img.data[s + 2]; o[d2 + 3] = 255;
       }
     }
-    return o;
+    // 必须把真实宽高一起交出去：缓冲区是 x1-x0 的整数差，调用方若自己 round(crop.w)
+    // 就会偶发差出 1 行，双线性读到数组外拿到 undefined → NaN → 写回 0，导出图底部
+    // 出现一条纯黑带（4000×3000 取 3:2 实测差 168 行）。
+    return { data: o, width: cw, height: ch };
   }
 
   function applyPortrait(img, pp) {
@@ -962,7 +975,12 @@
       if (s.type === 'eye') lightenWithin(img, pm, (s.amount || 60) / 100, true);
       else if (s.type === 'teeth') lightenWithin(img, pm, (s.amount || 45) / 100, true);
       else if (s.type === 'bag') lightenWithin(img, pm, (s.amount || 35) / 100, false);
-      else if (s.type === 'warp') warpPoint(img, img, s.x * w, s.y * h, D.max(6, (s.r || 0.08) * Math.min(w, h)), (s.amount || 0) / 100);
+      else if (s.type === 'warp') {
+        // 必须先快照再写：warpPoint 按行主序扫描，就地读写会让中心左上侧读到
+        // 已改写的像素，同一侧的变形被二次叠加（64×64 实测 110 个像素不一致、最大差 134）
+        var snap = { data: new Uint8ClampedArray(img.data), width: w, height: h };
+        warpPoint(snap, img, s.x * w, s.y * h, D.max(6, (s.r || 0.08) * Math.min(w, h)), (s.amount || 0) / 100);
+      }
     }
     return img;
   }

@@ -246,11 +246,12 @@ const count = packed.length / 6;
 const header = `/* 亮星表（自动生成，勿手改）
  * 生成命令：node tools/build-stars.js          可选：MAG_LIMIT=6.2 node tools/build-stars.js
  * 数据源：Yale Bright Star Catalogue 第 5 版（brettonw 整理 JSON，MIT，
- *         见 tools/vendor/LICENSE-brettonw-YaleBrightStarCatalog）
- *         IAU 专名对照 tools/vendor/starNames-IAU.txt（同许可），匹配 ${matched}/${iauRows.length} 条
+ *         许可正文随仓分发：THIRD_PARTY_NOTICES/brettonw-YaleBrightStarCatalog-MIT.txt）
+ *         IAU 专名对照取自同一仓库的 starNames-IAU.txt（同许可，生成输入不入库），
+ *         匹配 ${matched}/${iauRows.length} 条
  * 字段：每 6 个一组 —— 赤经(度, J2000) | 赤纬(度) | 视星等 | B-V×100 | 专名索引(-1 无) | HR 号
- * 口径：V ≤ ${MAG_LIMIT}，${count} 颗；自行未计（对星图视觉无感），
- *       岁差与章动由 src/core/astro.js 的 precess() 在投影前处理。
+ * 口径：V ≤ ${MAG_LIMIT}，${count} 颗；自行未计（对星图视觉无感）；
+ *       投影前由 src/core/astro.js 的 precess() 只作总岁差，不含章动（<0.01°，见 docs）。
  */`;
 
 const out = `${header}

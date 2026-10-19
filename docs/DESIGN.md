@@ -1,6 +1,6 @@
 ---
 version: 1
-name: 光野 LumenField
+name: Mizar 光野
 platform: web (桌面浏览器优先，兼容 iOS Safari)
 language: zh-CN
 fonts:
@@ -89,9 +89,9 @@ components: [sidebar-nav, toolbar, segmented, slider-row, switch, card, stat, ch
 
 - 说"到场时间"而不是"最佳体验时刻"。
 - 每个数带口径：`-0.833° 为升落`、`蓝调 -6~0°`、`银心取银经 4°`。
-- 算不出来的直接留白并写明：云量、光污染、视宁度标成"自填"或"需联网"，不做假数据填充。
+- 算不出来的直接留白并写明：云量、空气通透度、光污染等级标成"自填"或"需联网"，不做假数据填充。文档里出现的每一个字段名，界面上都必须真的存在。
 - 错误提示说清是哪一屏、什么原因，不写"出了点问题"。
 
 ## 无障碍
 
-所有交互控件带 `aria-label`；滑杆读数用等宽数字（`font-variant-numeric: tabular-nums`）避免跳动；焦点环用系统蓝 3px 外发光；对比度按 HIG 的 4.5:1 底线，脚注级小字按 7:1 自查；`prefers-reduced-motion` 下动效全部退化为淡入淡出。
+没有可见文字名的控件一律带 `aria-label`（滑杆、开关、主题按钮、抽屉关闭、侧栏选择器、日期框）；有可见文字的按钮靠文字取名，不额外加 `aria-label`。滑杆读数用等宽数字（`font-variant-numeric: tabular-nums`）避免跳动；焦点环用系统蓝 3px 外发光；对比度按 HIG 的 4.5:1 底线，脚注级小字按 7:1 自查；`prefers-reduced-motion` 下动效全部退化为淡入淡出。

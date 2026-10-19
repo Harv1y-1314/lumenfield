@@ -238,5 +238,46 @@ if (process.env.LF_ONLINE) {
   console.log('\n── C 联网对照默认跳过（LF_ONLINE=1 打开）');
 }
 
+/* ---------- 回归：nightPlan 的"次日"必须按本地日历推 ---------- */
+// 旧实现用 transit+12h 当次日，年月从 UTC 取、日从"加了时区"的瞬间取，两套坐标系
+// 拼一个日期：月末最后一天、以及站点位于时区中央经线以东时，那个瞬间还没跨过本地午夜，
+// 算出来仍是今天 → end 早于 start → 整晚零采样。界面表现为"当天没有可用窗口"、
+// 路书"全黑且银心>5°"=0、评分 0、银河季空柱。
+{
+  require('../src/data/sites.js');
+  const sites = globalThis.LFSites.list;
+  ok('站点数据可加载（40 个点）', sites.length === 40, sites.length + ' 个');
+  // sites.js 自己算 problems（境内框、经纬颠倒、时区越界），但界面上不显示——
+  // 那它就是"死数据"。挂一条断言当消费者：谁手写错一个点，测试当场红
+  ok('站点自检零问题', (globalThis.LFSites.problems || []).length === 0,
+    '问题 ' + JSON.stringify((globalThis.LFSites.problems || []).slice(0, 3)));
+  let bad = [], lastDayCases = 0;
+  for (const s of sites) {
+    for (let m = 1; m <= 12; m++) {
+      const last = new Date(Date.UTC(2026, m, 0)).getUTCDate();     // 当月最后一天
+      const p = A.nightPlan(2026, m, last, s.lat, s.lon, s.tz, { minCoreAlt: 5 });
+      lastDayCases++;
+      if (!(p.end > p.start) || !p.samples.length) bad.push(`${s.id} ${m}/${last}`);
+    }
+  }
+  ok('40 站 × 12 个月末的 nightPlan 都有非空窗口', bad.length === 0,
+    `${lastDayCases} 例，异常 ${bad.length}：${bad.slice(0, 4).join(' ')}`);
+
+  // 时区中央经线以东：本地正午早于 12:00，旧实现在普通日期也坏
+  for (const [name, lat, lon, tz] of [['东京', 35.68, 139.69, 540], ['长白山', 42.0, 128.0, 480]]) {
+    const p = A.nightPlan(2026, 6, 21, lat, lon, tz, { minCoreAlt: 5 });
+    ok(`${name} 夏至夜 nightPlan 非空（旧实现零采样）`, p.samples.length > 0 && p.end > p.start,
+      `采样 ${p.samples.length} 点`);
+  }
+
+  // 次日日出必须真的是"下一本地日"的日出，不能是同一天
+  const s0 = sites[0];
+  const a = A.nightPlan(2026, 10, 31, s0.lat, s0.lon, s0.tz, {});
+  const b = A.sunEvents(2026, 11, 1, s0.lat, s0.lon, s0.tz);
+  ok('月末那晚的收尾落在次日本地日的日出上',
+    !!a.end && !!b.sunrise && Math.abs(a.end - b.sunrise) < 1000,
+    `${a.end && a.end.toISOString()} vs ${b.sunrise && b.sunrise.toISOString()}`);
+}
+
 console.log(`\n历算核对：通过 ${pass} 项，失败 ${fail} 项`);
 process.exit(fail ? 1 : 0);

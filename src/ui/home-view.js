@@ -94,21 +94,23 @@
         ticks.forEach(function (tk) {
           var px = tk.pct / 100 * W;
           var half = (tk.span.offsetWidth || 70) / 2 + 4;
-          var pick = 0, bestFree = -1;
+          var pick = 0;
           for (var ri = 0; ri < rows.length; ri++) {
             var free = rows[ri].every(function (r) { return Math.abs(r.px - px) >= r.half + half; });
-            if (free) { pick = ri; bestFree = 1; break; }
+            if (free) { pick = ri; break; }
             pick = ri;
           }
           rows[pick].push({ px: px, half: half });
           tk.span.style.left = tk.pct.toFixed(2) + '%';
           tk.span.style.top = (pick * 13) + 'px';
-          void bestFree;
         });
         bar.style.height = (13 * rows.filter(function (r) { return r.length; }).length + 8) + 'px';
       }
       requestAnimationFrame(placeTicks);
       window.addEventListener('resize', placeTicks);
+      // 每次渲染都会重新注册；不摘的话切一次站点就 +1 个 window 级监听，
+      // 旧闭包还把 bar 和全部 span 钉在内存里，用久了拖窗口就开始卡
+      api._cleanup = function () { window.removeEventListener('resize', placeTicks); };
 
       content.appendChild(api.el('div', { class: 'card' }, [
         api.el('div', { class: 'row spread' }, [

@@ -24,7 +24,7 @@
 
 需要 Safari 16 / Chrome 110 以上的任意桌面浏览器；iPhone 与 iPad 直接用 Safari 打开同一地址即可。
 
-## 四个工作区
+## 五个工作区
 
 | 工作区 | 解决什么 | 关键产出 |
 | --- | --- | --- |
@@ -44,7 +44,7 @@
 | 计费 | 按成功导出张数计费，额度一年作废 | 无账号无计费 |
 | 生态 | 导入 `.xmp` 与 `.cube` | 反向导出 `.cube`（33³/17³），色彩链能带回 Lightroom / Capture One |
 | 场景 | 人像精修为绝对主场 | 人像 + 风光 + 前期时空推演一体，风光与星空是主战场 |
-| 可解释 | 功能置灰时原因藏在帮助文档里 | 每个数标口径；算不出来的（云量、光污染、视宁度）在界面上明确留白 |
+| 可解释 | 功能置灰时原因藏在帮助文档里 | 每个数标口径；算不出来的（云量、空气通透度、光污染等级）在界面上明确留白 |
 
 不做的也写清楚：没有语义分割网络，所以"面部皮肤/眉毛/眼瞳/嘴唇/牙齿"这类自动分区我们只做**判据 + 手动补画**；没有 RAW 解码，输入是 JPEG/PNG/WebP；不做换天、生成式消除与 AI 布景。
 
@@ -66,12 +66,13 @@
 跑一遍：
 
 ```bash
-node tests/astro.test.mjs      # 历算 330 项
-node tests/imaging.test.mjs    # 影像算子 52 项
-bash tools/check.sh            # 上面两项 + 全量语法检查 + 发布前自检
+node tests/astro.test.mjs      # 历算 336 项
+node tests/imaging.test.mjs    # 影像算子 65 项
+electron tools/shot.mjs        # 界面 17 组无头回归（仅开发期需要 Electron，运行期仍零依赖）
+bash tools/check.sh            # 上面全部 + 全量语法 + 门禁自测 + 发布前自检
 ```
 
-完整数字与失败记录在 [docs/验证记录.md](docs/验证记录.md)，里面也记了这轮开发中被测试抓出来的 9 个真 bug（行星距角用了日心黄经、HSL 带宽判据反了、星表步长取成 `undefined` 等）。
+完整数字与失败记录在 [docs/验证记录.md](docs/验证记录.md)，里面记了开发期与发布前两复检共 **36 个真 bug**（行星距角用了日心黄经、裁剪后画面整体平移、纹理其实是亮度滑杆、月末整晚算出零采样、门禁自己的 eval 判据失明等），每条都带根因与定位方式。
 
 ## 目录
 
@@ -93,8 +94,8 @@ tests/                  离线核对套件
 
 ## 数据来源与许可
 
-- 代码：MIT，见 [LICENSE](LICENSE)。
-- 恒星表：Yale Bright Star Catalogue 第 5 版（brettonw 整理的 JSON，MIT），见 `tools/vendor/` 内许可原文。
+- 代码与文档：MIT，见 [LICENSE](LICENSE)。**MIT 只覆盖我们写的东西**，不覆盖随仓分发的第三方数据。
+- 恒星表：Yale Bright Star Catalogue 第 5 版（brettonw 整理的 JSON，MIT）。封装的许可正文随仓分发在 [THIRD_PARTY_NOTICES/](THIRD_PARTY_NOTICES/README.md)，星表本体的引用与两层许可的分别见 [docs/数据来源与许可.md](docs/数据来源与许可.md)。
 - 轨道要素与摄动项：Paul Schlyter 的公开教程 *How to compute the orbital positions of Sun, Moon and planets*。
 - 银道常数：IAU 1958 银道系（银极 192.85948°/+27.12825°，银心 266.4051°/−28.9362°）。
 - 界面数值：Apple Human Interface Guidelines 的 Typography / Color / Materials / Dark Mode / Layout / Motion 六页；HIG 未给数字的材质模糊与动效时长在 `tokens.css` 注释里标为经验值。

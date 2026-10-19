@@ -8,7 +8,7 @@
   'use strict';
   var LF = root.LF, A = root.LFAstro, Sky = root.LFSky;
 
-  var raf = null, lastFrame = 0, hover = null, drag = null;
+  var raf = null, loopRaf = null, lastFrame = 0, hover = null, drag = null;
   var canvas, stage, tip;
 
   function localToDate(site, dayISO, hourLocal) {
@@ -162,14 +162,16 @@
       playBtn.addEventListener('click', function () { sky.playing = !sky.playing; api.save(); playBtn.textContent = sky.playing ? '❙❙' : '▶'; loop(); });
       scrub.addEventListener('input', function () { sky.hour = Number(scrub.value); api.save(); paint(); });
       function loop() {
-        if (!sky.playing) { raf = null; return; }
+        if (!sky.playing) { loopRaf = null; return; }
         var now = performance.now();
         var dt = now - lastFrame; lastFrame = now;
         sky.hour += dt / 1000 * (sky.speed || 5) / 60 * 6;   // 每真实秒推进 speed×6 分钟
         if (sky.hour > 30) sky.hour -= 18;
         scrub.value = sky.hour;
         paint();
-        raf = requestAnimationFrame(loop);
+        // 播放帧单独一个句柄。与 invalidate 共用 raf 时，播放中碰任何一个滑杆
+        // 会把播放那一帧 cancel 掉，时间轴冻住但按钮还显示"❙❙"
+        loopRaf = requestAnimationFrame(loop);
       }
       lastFrame = performance.now();
       paint();
@@ -214,7 +216,11 @@
       }
       api._cleanup = function () {
         if (raf) cancelAnimationFrame(raf);
-        raf = null; sky.playing = false;
+        if (loopRaf) cancelAnimationFrame(loopRaf);
+        raf = null; loopRaf = null;
+        // playing 是运行态却被持久化过：中途关页面会让下一次打开自动开播、白烧 CPU。
+        // 这里停掉并落盘，等于"离开星野就一定停"
+        if (sky.playing) { sky.playing = false; api.save(); }
         window.removeEventListener('resize', invalidate);
         document.removeEventListener('keydown', spaceHandler);
       };

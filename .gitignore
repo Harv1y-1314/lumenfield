@@ -2,9 +2,10 @@
 node_modules/
 dist/
 *.log
-tools/vendor/*.json
-tools/vendor/*.txt
-tools/vendor/LICENSE-*
+# 原始星表与其中转折射是"重新生成"的输入，4.4 MB 级，不入库；整目录挡掉，
+# 别按扩展名列（按扩展名会漏：下次 fetch 落一个 .csv/.xml 就连着原始数据一起进公开仓）。
+# 第三方许可正文不在这儿——它必须随仓分发，已提到 THIRD_PARTY_NOTICES/。
+tools/vendor/
 tools/reference/skydata/
 tests/fixtures/*.tmp
 __pycache__/

@@ -436,8 +436,6 @@
     res.moonset = mr.length > 1 ? mr[mr.length - 1].time : null;
     var noon = new Date(range.start.getTime() + 43200000);
     var p = moonPos(noon, { topocentric: true, latitude: lat, longitude: lonEast });
-    var h = toHorizontal(p.ra, p.dec, noon, lat, lonEast);
-    res.maxAltitude = null;
     var best = null;
     for (var i = 0; i <= 96; i++) {
       var t = new Date(range.start.getTime() + (86400000 * i) / 96);
@@ -448,7 +446,6 @@
     res.transit = best;
     res.illumination = moonIllumination(noon);
     res.distanceEarthRadii = p.dist;
-    void h;
     return res;
   }
 
@@ -631,9 +628,13 @@
     opts = opts || {};
     var minCoreAlt = opts.minCoreAlt === undefined ? 5 : opts.minCoreAlt;
     var sun = sunEvents(y, m1, d1, lat, lonEast, tzOffsetMin);
-    var next = new Date(sun.transit.time.getTime() + 43200000);
-    var ny = next.getUTCFullYear(), nm = next.getUTCMonth() + 1, nd = new Date(next.getTime() + tzOffsetMin * 60000).getUTCDate();
-    var sun2 = sunEvents(ny, nm, nd, lat, lonEast, tzOffsetMin);
+    // "次日"必须按本地日历推。早先用 transit+12h 当次日、又分别从 UTC 取年月、
+    // 从加了时区的瞬间取日，两套坐标系拼一个日期：月末最后一天、以及站点位于
+    // 时区中央经线以东（本地正午早于 12:00）时，那个瞬间还没跨过本地午夜，
+    // 算出来仍是今天 → end 早于 start → 整晚零采样（实测 40 个预设站在月末全中）。
+    // Date.UTC 自己会跨月跨年，直接用它推下一天。
+    var nd1 = new Date(Date.UTC(y, m1 - 1, d1 + 1));
+    var sun2 = sunEvents(nd1.getUTCFullYear(), nd1.getUTCMonth() + 1, nd1.getUTCDate(), lat, lonEast, tzOffsetMin);
     var start = sun.sunset || new Date(sun.transit.time.getTime() + 21600000);
     var end = sun2.sunrise || new Date(sun2.transit.time.getTime() - 21600000);
     var coreFn = galacticCoreAltFn(lonEast, lat);
@@ -751,7 +752,9 @@
     if (!date) return '—';
     var t = new Date(date.getTime() + tzOffsetMin * 60000);
     var p = function (n) { return (n < 10 ? '0' : '') + n; };
-    var s = p(t.getUTCDate()) + ' ' + p(t.getUTCMonth() + 1) + ' ' +
+    // 月在前、中间用短横：原来输出「26 10 12:18」这种"日 月"，读者要猜顺序，
+    // 跨月时（10 10）更是完全读不出是哪天
+    var s = p(t.getUTCMonth() + 1) + '-' + p(t.getUTCDate()) + ' ' +
       p(t.getUTCHours()) + ':' + p(t.getUTCMinutes());
     if (withSeconds) s += ':' + p(t.getUTCSeconds());
     return s;
