@@ -71,6 +71,12 @@
       } else {
         content.appendChild(stage);
         bindStage(canvas, api);
+        stage.addEventListener('dragover', function (ev) { ev.preventDefault(); stage.classList.add('over'); });
+        stage.addEventListener('dragleave', function () { stage.classList.remove('over'); });
+        stage.addEventListener('drop', function (ev) {
+          ev.preventDefault(); stage.classList.remove('over');
+          importFiles(ev.dataTransfer.files, api);
+        });
       }
 
       /* ── 读数条 ── */

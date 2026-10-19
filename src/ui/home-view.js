@@ -68,16 +68,30 @@
       var marks = A.lightPhases(sun).filter(function (m) {
         return keep.some(function (k) { return m.name.indexOf(k) === 0; });
       });
-      var bar = api.el('div', { class: 'tl-marks' }, marks.map(function (m) {
-        return api.el('span', { title: m.name, text: m.name + '\n' + api.time(m.time) });
-      }));
+      // 刻度必须按当天真实时刻的比例摆，等距排会把"日出"指到别的色带上
+      var dayStart = A.civilDayRange(sun.date.y, sun.date.m, sun.date.d, site.tz).start.getTime();
+      var bar = api.el('div', { style: { position: 'relative', height: '26px', marginTop: '4px' } });
+      marks.forEach(function (m) {
+        var pct = clamp((m.time.getTime() - dayStart) / 86400000 * 100, 0, 100);
+        bar.appendChild(api.el('span', {
+          title: m.name,
+          style: {
+            position: 'absolute', left: pct.toFixed(2) + '%', transform: 'translateX(-50%)',
+            fontSize: '10px', color: 'var(--label-2)', whiteSpace: 'nowrap', textAlign: 'center', lineHeight: '12px'
+          },
+          text: m.name + '\n' + api.time(m.time)
+        }));
+        bar.appendChild(api.el('i', {
+          style: { position: 'absolute', left: pct.toFixed(2) + '%', top: 0, width: '1px', height: '5px', background: 'var(--label-3)' }
+        }));
+      });
 
       content.appendChild(api.el('div', { class: 'card' }, [
         api.el('div', { class: 'row spread' }, [
           api.el('div', { class: 'card-title', text: '今日光段' }),
           api.el('div', { class: 'tiny', text: '按太阳几何高度分档：>6° 白昼 · 0~6° 黄金 · -6~0° 蓝调 · -18° 以下全黑' })
         ]),
-        api.el('div', { style: { position: 'relative', margin: '10px 0 6px' } }, tl),
+        api.el('div', { style: { position: 'relative', margin: '10px 0 2px' } }, tl),
         bar
       ]));
 
@@ -199,4 +213,5 @@
     return rows;
   }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function clamp(x, lo, hi) { return x < lo ? lo : x > hi ? hi : x; }
 })(typeof window !== 'undefined' ? window : globalThis);

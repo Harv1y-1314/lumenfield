@@ -365,9 +365,12 @@
     document.getElementById('help-btn').addEventListener('click', function () {
       document.getElementById('help-dialog').showModal();
     });
-    document.getElementById('inspector').addEventListener('click', function () {
-      document.body.classList.add('inspector-open');
+    // 窄屏时检查器是抽屉：打开靠点侧栏，关闭给右上角一个明确的 ×
+    var closeBtn = el('button', {
+      class: 'insp-close icon-btn', 'aria-label': '收起参数面板', text: '×',
+      onclick: function () { document.body.classList.remove('inspector-open'); }
     });
+    document.getElementById('inspector').prepend(closeBtn);
     document.addEventListener('keydown', function (e) {
       if (e.target.matches('input,select,textarea')) return;
       if (e.key >= '1' && e.key <= '5') {

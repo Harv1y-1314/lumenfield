@@ -102,6 +102,7 @@ body.no-inspector .app { grid-template-columns: var(--sidebar-w) minmax(0, 1fr) 
   overflow: auto; padding: var(--s-3) var(--s-3) var(--s-8);
 }
 body.no-inspector .inspector { display: none; }
+.insp-close { display: none; }
 .insp-group { margin-bottom: var(--s-4); }
 .insp-head {
   display: flex; align-items: center; gap: 6px; width: 100%;
@@ -307,6 +308,7 @@ dialog form { padding: 0 var(--s-6) var(--s-5); display: flex; justify-content: 
     box-shadow: var(--shadow-3);
   }
   body.inspector-open .inspector { transform: none; }
+  .insp-close { display: block; position: sticky; top: 4px; margin-left: auto; }
 }
 @media (max-width: 780px) {
   .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
