@@ -45,11 +45,11 @@
       actions.textContent = '';
       actions.appendChild(api.el('button', {
         class: 'control', text: '导出 Markdown',
-        onclick: function () { api.saveText('Mizar路书-' + site.id + '-' + api.state.dateISO + '.md', markdown(rows, site, kind, days), 'text/markdown;charset=utf-8'); api.toast('路书已导出为 .md'); }
+        onclick: function () { api.saveText('Chastar路书-' + site.id + '-' + api.state.dateISO + '.md', markdown(rows, site, kind, days), 'text/markdown;charset=utf-8'); api.toast('路书已导出为 .md'); }
       }));
       actions.appendChild(api.el('button', {
         class: 'control primary', text: '导出 JSON',
-        onclick: function () { api.saveText('Mizar路书-' + site.id + '.json', JSON.stringify({ site: site, from: api.state.dateISO, days: days, kind: kind, rows: rows }, null, 1), 'application/json'); api.toast('含全部计算量的 JSON 已导出'); }
+        onclick: function () { api.saveText('Chastar路书-' + site.id + '.json', JSON.stringify({ site: site, from: api.state.dateISO, days: days, kind: kind, rows: rows }, null, 1), 'application/json'); api.toast('含全部计算量的 JSON 已导出'); }
       }));
 
       /* 表格 */
@@ -130,7 +130,7 @@
 
       insp.appendChild(api.group('需要联网的量', [
         api.el('div', { class: 'tiny', text: '云量与降水：ECMWF/GFS 或晴天钟一类接口；光污染：VIIRS/世界图集栅格；极光 Kp：Space Weather Live。' }),
-        api.el('div', { class: 'tiny', text: 'Mizar 刻意不把这些塞进界面里当成"已算出"。要接的话，接进上面那张表的空列即可，评分函数留了权重位。' })
+        api.el('div', { class: 'tiny', text: 'Chastar 刻意不把这些塞进界面里当成"已算出"。要接的话，接进上面那张表的空列即可，评分函数留了权重位。' })
       ], { collapsed: true, note: '未接入' }));
     }
   });
@@ -273,7 +273,7 @@
   }
 
   function markdown(rows, site, kind, days) {
-    var head = '# Mizar 路书 · ' + site.name + '\n\n';
+    var head = '# Chastar 路书 · ' + site.name + '\n\n';
     head += '- 坐标：' + Math.abs(site.lat).toFixed(4) + '°' + (site.lat >= 0 ? 'N' : 'S') + ' ' +
       Math.abs(site.lon).toFixed(4) + '°' + (site.lon >= 0 ? 'E' : 'W') +
       '，海拔 ' + (site.height || '—') + ' m\n';
@@ -288,7 +288,7 @@
         return k === 'score' ? (v * 100).toFixed(0) : (v === 0 || v === undefined || v === null ? '—' : v);
       }).join(' | ') + ' |\n';
     });
-    head += '\n> 由 Mizar（光野）本地推算，公式与核对记录见仓库 docs/。\n';
+    head += '\n> 由 Chastar（光野）本地推算，公式与核对记录见仓库 docs/。\n';
     return head;
   }
 })(typeof window !== 'undefined' ? window : globalThis);

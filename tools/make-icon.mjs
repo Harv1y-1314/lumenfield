@@ -1,4 +1,4 @@
-/* make-icon.mjs —— 从 assets/icons/mizar.svg 生成 PNG 图标。
+/* make-icon.mjs —— 从 assets/icons/chastar.svg 生成 PNG 图标。
  *
  * 跑法：electron tools/make-icon.mjs
  *
@@ -7,7 +7,7 @@
  * toDataURL 会抛 SecurityError。
  *
  * 两套产物各有理由：
- *   mizar-512.png        带圆角、透明背景，用于仓内展示与社交卡片
+ *   chastar-512.png        带圆角、透明背景，用于仓内展示与社交卡片
  *   apple-touch-icon.png 满幅不圆角，交给 iOS 自己裁连续曲率；
  *                        若预先圆角，iOS 会在四角补一层底色，反而露出白边
  */
@@ -17,12 +17,12 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = join(fileURLToPath(import.meta.url), '../..');
-const SVG = readFileSync(join(HERE, 'assets/icons/mizar.svg'), 'utf8');
+const SVG = readFileSync(join(HERE, 'assets/icons/chastar.svg'), 'utf8');
 const FULL = SVG.replace('<rect width="512" height="512" rx="116"/>', '<rect width="512" height="512" rx="0"/>');
 
 const jobs = [
-  { out: 'assets/icons/mizar-512.png', src: SVG, size: 512 },
-  { out: 'assets/icons/mizar-180.png', src: SVG, size: 180 },
+  { out: 'assets/icons/chastar-512.png', src: SVG, size: 512 },
+  { out: 'assets/icons/chastar-180.png', src: SVG, size: 180 },
   { out: 'assets/icons/apple-touch-icon.png', src: FULL, size: 180 },
 ];
 

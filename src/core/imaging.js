@@ -1027,7 +1027,7 @@
     var wb = wbLUTs(p.temp, p.tint, p.wbGain);
     var lines = [];
     lines.push('LUT_3D_SIZE ' + n);
-    lines.push('# Mizar 配方烘出的 3D LUT；只包含 ' + LUT_STAGES + ' 这些与位置无关的算子');
+    lines.push('# Chastar 配方烘出的 3D LUT；只包含 ' + LUT_STAGES + ' 这些与位置无关的算子');
     lines.push('# 清晰度/去雾/磨皮/局部控制点是逐像素依赖的，不在这张表里');
     var hsl = [0, 0, 0], o = [0, 0, 0];
     var lut = new Uint8Array(256);

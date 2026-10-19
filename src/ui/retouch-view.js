@@ -326,7 +326,7 @@
         api.el('button', { class: 'control primary', style: { width: '100%' }, text: '导出当前张', onclick: function () { exportCurrent(api); } }),
         api.el('button', { class: 'control', style: { width: '100%' }, text: '逐张导出全部（' + st.images.length + '）', onclick: function () { exportAll(api); } }),
         api.el('div', { class: 'divider' }),
-        api.el('button', { class: 'control', style: { width: '100%' }, text: '导出配方 .json', onclick: function () { api.saveText(safeName(e.name) + '.mizar.json', JSON.stringify(R, null, 1), 'application/json'); } }),
+        api.el('button', { class: 'control', style: { width: '100%' }, text: '导出配方 .json', onclick: function () { api.saveText(safeName(e.name) + '.chastar.json', JSON.stringify(R, null, 1), 'application/json'); } }),
         api.el('button', { class: 'control', style: { width: '100%' }, text: '载入配方', onclick: function () { pickRecipe(api); } }),
         api.el('button', { class: 'control', style: { width: '100%' }, text: '烘 .cube（33³，色彩链）', onclick: function () { exportCube(api, 33); } }),
         api.el('button', { class: 'control', style: { width: '100%' }, text: '烘 .cube（17³，轻一点）', onclick: function () { exportCube(api, 17); } }),
@@ -347,7 +347,7 @@
         if (ev.key === '~' || (ev.key === '`' && !ev.repeat)) { view.peek = true; safePaint(api, true); }
         if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 's') {
           ev.preventDefault();
-          api.saveText(safeName(current().name) + '.mizar.json', JSON.stringify(current().recipe, null, 1), 'application/json');
+          api.saveText(safeName(current().name) + '.chastar.json', JSON.stringify(current().recipe, null, 1), 'application/json');
           api.toast('配方已存成 .json');
         }
       };
@@ -653,7 +653,7 @@
           if (done) done();
           return;
         }
-        api.downloadBlob(safeName(e.name) + '-Mizar.' + (fmt === 'image/png' ? 'png' : 'jpg'), blob);
+        api.downloadBlob(safeName(e.name) + '-Chastar.' + (fmt === 'image/png' ? 'png' : 'jpg'), blob);
         api.toast('已导出 ' + out.width + '×' + out.height + '（' + (blob.size / 1048576).toFixed(2) + ' MB）');
         if (done) done();
       }, fmt, ((R.output && R.output.quality) || 92) / 100);

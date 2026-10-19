@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Mizar">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Chastar">
   <!-- 侧栏与 favicon 用的小标：与 512 主图标同一套四角闪光几何，只留主星 + 伴星 -->
   <path d="M9.6 2.4 C9.6 9.6 9.6 9.6 16.8 9.6 C9.6 9.6 9.6 9.6 9.6 16.8 C9.6 9.6 9.6 9.6 2.4 9.6 C9.6 9.6 9.6 9.6 9.6 2.4 Z" fill="currentColor"/>
   <path d="M18 13.6 C18 18 18 18 22.4 18 C18 18 18 18 18 22.4 C18 18 18 18 13.6 18 C18 18 18 18 18 13.6 Z" fill="currentColor" opacity="0.66"/>

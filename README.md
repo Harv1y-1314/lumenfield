@@ -1,8 +1,8 @@
-# <img src="assets/icons/mizar-180.png" alt="Mizar 图标" width="34" height="34" valign="bottom"> Mizar 光野
+# <img src="assets/icons/chastar-180.png" alt="Chastar 图标" width="34" height="34" valign="bottom"> Chastar 光野
 
 风光与旅拍的一体化本地工作台：出门前排路书，夜里推星野，回来做精修。照片不出这台机器。
 
-**为什么叫 Mizar**：Mizar（开阳，北斗柄第三星 ζ UMa）与暗伴星 Alcor 这对双星，自古被当作裸眼视力题——看得见那颗小的才算眼神好。这个工具管的两件事正好是同一句话：把光和星的位置算准，把看得清不清这件事变成数字。图标取它的四角闪光形，配一条被末光照亮的地平线。
+**为什么叫 Chastar**：自造词，不指向任何恒星专名（这一点写明，免得被当成星名去查）。图标上是一颗亮星，和旁边那颗要眯眼才看得见的暗伴星——这个工具管的两件事正好是同一句话：把光和星的位置算准，把"看得清不清"变成数字。图标取四角闪光形，配一条被末光照亮的地平线。
 
 ![工作台](docs/screens/01-home.png)
 
