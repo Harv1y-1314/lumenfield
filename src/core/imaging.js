@@ -162,11 +162,6 @@
   /* ---------- LUT：把逐像素的单调映射压成表 ---------- */
 
   function identityLUT() { var t = new Uint8Array(256); for (var i = 0; i < 256; i++) t[i] = i; return t; }
-  function mixLUT(a, b) {
-    var o = new Uint8Array(256);
-    for (var i = 0; i < 256; i++) o[i] = a[i];
-    return o;
-  }
   /** 分段线性插值：points 为 [{x,y}]，x/y 均 0..1，必须单调 */
   function piecewiseLUT(points, gammaFn) {
     var pts = points.slice().sort(function (a, b) { return a.x - b.x; });
@@ -971,7 +966,6 @@
     }
     return img;
   }
-  function luminanceMaskMid(img) { return luminanceMask(img, 'high', 0.4, 0.5); }
 
   /* ---------- 直方图与读数 ---------- */
 
@@ -1098,6 +1092,6 @@
     applyVignette: applyVignette, applyGrain: applyGrain, applyLocal: applyLocal,
     renderPipeline: renderPipeline, applyPortrait: applyPortrait, DEFAULTS: DEFAULTS,
     histogram: histogram, toneReadout: toneReadout, bakeCube: bakeCube,
-    normalizeRecipe: normalizeRecipe, recipeHash: recipeHash, luminanceMaskMid: luminanceMaskMid
+    normalizeRecipe: normalizeRecipe, recipeHash: recipeHash
   };
 });

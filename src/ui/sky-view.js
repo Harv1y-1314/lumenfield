@@ -15,10 +15,6 @@
     var d = new Date(dayISO + 'T00:00:00Z');
     return new Date(d.getTime() + hourLocal * 3600000 - site.tz * 60000);
   }
-  function dateToHour(site, date) {
-    var d = new Date(date.getTime() + site.tz * 60000);
-    return d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600;
-  }
 
   LF.register('sky', {
     title: '星野',

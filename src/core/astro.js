@@ -372,13 +372,6 @@
       return toHorizontal(m.ra, m.dec, date, lat, lonEast).alt;
     };
   }
-  function bodyAltFn(getBody, lonEast, lat) {
-    return function (date) {
-      var b = getBody(date);
-      return toHorizontal(b.ra, b.dec, date, lat, lonEast).alt;
-    };
-  }
-
 
   /* 某地的“民用日”（以时区偏移为准，东为正，单位分钟）→ UTC 起止 */
   function civilDayRange(y, m1, d1, tzOffsetMin) {

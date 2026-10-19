@@ -117,12 +117,11 @@ body.no-inspector .inspector { display: none; }
 
 /* ── 卡片 ──────────────────────────────────────────────── */
 .card {
-  background: var(--bg);
+  background: var(--surface);
   border-radius: var(--r-card);
   box-shadow: var(--shadow-1), inset 0 0 0 1px var(--sep);
   padding: var(--s-4);
 }
-[data-theme="dark"] .card, [data-theme="auto"] .card { background: var(--bg-2); }
 .card-title { font-size: var(--t-title2); font-weight: 600; margin-bottom: 2px; }
 .card-sub { font-size: var(--t-callout); color: var(--label-2); margin-bottom: var(--s-3); }
 .card.tight { padding: var(--s-3); }
