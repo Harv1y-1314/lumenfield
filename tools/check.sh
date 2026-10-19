@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# check.sh —— 发布前自检。只写能机器判定的项，判不了的（比如"UI 好不好看"）走 docs/发布检查.md。
+# check.sh —— 发布前自检。只写能机器判定的项；界面这一层用无头 Electron 兜住"渲染没崩、
+# 主题切了、画布真出图、没横向溢出"，好不好看仍然走 docs/发布检查.md 的人眼判断。
 #
 # 用法：bash tools/check.sh
 #       LF_ONLINE=1 bash tools/check.sh    # 追加与 NOAA 独立实现的联网对照
@@ -30,7 +31,7 @@ scanned() { printf '（扫描 %s 个待提交文件）\n' "${#FILES[@]}"; }
 sec "语法"
 js=0
 for f in "${FILES[@]}"; do
-  case "$f" in *.js) js=$((js + 1)); node --check "$f" || fail "语法不通：$f" ;; esac
+  case "$f" in *.js|*.mjs) js=$((js + 1)); node --check "$f" || fail "语法不通：$f" ;; esac
 done
 pass "$js 个 JS 文件通过 node --check"
 python3 -m py_compile tools/reference/skyfield_check.py 2>/dev/null && pass "取样脚本可编译" || fail "取样脚本编译失败"
@@ -53,6 +54,17 @@ scan_src 'fetch\(|XMLHttpRequest|new Worker\(' > /dev/null 2>&1 \
   || pass "零 fetch，file:// 双击可跑"
 grep -qE '<script[^>]+src="https?:|<link[^>]+href="https?:|@import url\("?https?:' index.html assets/css/*.css \
   && fail "有 CDN/外链依赖，断网打不开" || pass "无 CDN 与外链，断网可用"
+
+sec "界面"
+# 无头 Electron 跑 17 组：五个视图 × 明暗 × 宽窄屏、拖放导入、两套投影。
+# Electron 只是开发期工具，运行期仍然零依赖，所以本机没有就跳过而不是失败。
+if command -v electron > /dev/null 2>&1; then
+  electron tools/shot.mjs > /tmp/lf-ui.log 2>&1 \
+    && pass "界面无头回归：$(tail -1 /tmp/lf-ui.log | sed -E 's/，?截图在.*//')" \
+    || { fail "界面无头回归有失败项"; grep '^FAIL' /tmp/lf-ui.log | head -6 | sed 's/^/       /'; }
+else
+  note "本机无 electron，跳过界面无头回归（手动跑：electron tools/shot.mjs）"
+fi
 
 sec "外部请求面"
 if scan '(fetch|XMLHttpRequest|\.src|new Worker)\s*\(?["'"'"']https?://' > /dev/null 2>&1; then

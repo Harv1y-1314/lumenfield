@@ -70,21 +70,45 @@
       });
       // 刻度必须按当天真实时刻的比例摆，等距排会把"日出"指到别的色带上
       var dayStart = A.civilDayRange(sun.date.y, sun.date.m, sun.date.d, site.tz).start.getTime();
-      var bar = api.el('div', { style: { position: 'relative', height: '26px', marginTop: '4px' } });
-      marks.forEach(function (m) {
+      var bar = api.el('div', { style: { position: 'relative', height: '40px', marginTop: '4px' } });
+      var ticks = marks.map(function (m) {
         var pct = clamp((m.time.getTime() - dayStart) / 86400000 * 100, 0, 100);
-        bar.appendChild(api.el('span', {
+        var label = m.name + ' ' + api.time(m.time);
+        var span = api.el('span', {
           title: m.name,
-          style: {
-            position: 'absolute', left: pct.toFixed(2) + '%', transform: 'translateX(-50%)',
-            fontSize: '10px', color: 'var(--label-2)', whiteSpace: 'nowrap', textAlign: 'center', lineHeight: '12px'
-          },
-          text: m.name + '\n' + api.time(m.time)
-        }));
+          style: { position: 'absolute', transform: 'translateX(-50%)', fontSize: '10px',
+            color: 'var(--label-2)', whiteSpace: 'nowrap', textAlign: 'center', lineHeight: '12px' },
+          text: label
+        });
+        bar.appendChild(span);
         bar.appendChild(api.el('i', {
-          style: { position: 'absolute', left: pct.toFixed(2) + '%', top: 0, width: '1px', height: '5px', background: 'var(--label-3)' }
+          style: { position: 'absolute', left: pct.toFixed(2) + '%', top: 0, width: '1px', height: '4px', background: 'var(--label-3)' }
         }));
+        return { span: span, pct: pct };
       });
+      // 刻度得等这条 bar 真的进了文档、量得到宽度以后再摆：
+      // 未插入时 clientWidth 是 0，按估算是会叠字的（实测就是这样翻过一次）
+      function placeTicks() {
+        var W = bar.clientWidth || 900;
+        var rows = [[], [], []];
+        ticks.forEach(function (tk) {
+          var px = tk.pct / 100 * W;
+          var half = (tk.span.offsetWidth || 70) / 2 + 4;
+          var pick = 0, bestFree = -1;
+          for (var ri = 0; ri < rows.length; ri++) {
+            var free = rows[ri].every(function (r) { return Math.abs(r.px - px) >= r.half + half; });
+            if (free) { pick = ri; bestFree = 1; break; }
+            pick = ri;
+          }
+          rows[pick].push({ px: px, half: half });
+          tk.span.style.left = tk.pct.toFixed(2) + '%';
+          tk.span.style.top = (pick * 13) + 'px';
+          void bestFree;
+        });
+        bar.style.height = (13 * rows.filter(function (r) { return r.length; }).length + 8) + 'px';
+      }
+      requestAnimationFrame(placeTicks);
+      window.addEventListener('resize', placeTicks);
 
       content.appendChild(api.el('div', { class: 'card' }, [
         api.el('div', { class: 'row spread' }, [
@@ -198,7 +222,7 @@
   function buildPlan(sun, night, core, site) {
     var rows = [];
     function push(t, doo, why) { if (t) rows.push({ time: A.fmtTime(t, site.tz, true), do: doo, why: why }); }
-    push(sun.golden.morning[0] ? sun.sunrise : null, '机位就位、测光锁定', '日出前 20 分钟到场，蓝调还能补一张');
+    push(sun.sunrise ? new Date(sun.sunrise.getTime() - 20 * 60000) : null, '机位就位、测光锁定', '按日出前 20 分钟算的到场时间，蓝调还能补一张');
     push(sun.sunrise, '按曝光包围拍 3 张', '太阳几何高度 0°，地景与天空光比最大');
     push(sun.golden.morning[0], '换长焦收局部光', '黄金时刻结束，光线转硬');
     push(sun.golden.evening[0], '转场到日落机位', '黄金时刻开始，斜射侧光最好看');

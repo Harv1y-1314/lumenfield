@@ -16,7 +16,8 @@
     retouch: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.2" y="3" width="11.6" height="10" rx="2"/><path d="M6.6 6.2l2.8 3.6-2.8 0z"/><circle cx="10.4" cy="6" r="1"/></svg>',
     tools: '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="7" cy="7" r="3.4"/><path d="M9.6 9.6 13.4 13.4"/><path d="M3.2 12.8h3"/></svg>',
     sun: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="8" r="3"/><path d="M8 1.4v1.8M8 12.8v1.8M1.4 8h1.8M12.8 8h1.8M3.4 3.4l1.3 1.3M11.3 11.3l1.3 1.3M12.6 3.4l-1.3 1.3M4.7 11.3l-1.3 1.3"/></svg>',
-    moon: '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M10.6 2.2a5.4 5.4 0 1 0 3.2 9.1A6 6 0 0 1 10.6 2.2z"/></svg>'
+    moon: '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M10.6 2.2a5.4 5.4 0 1 0 3.2 9.1A6 6 0 0 1 10.6 2.2z"/></svg>',
+    auto: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="8" r="5.6"/><path d="M8 2.4v11.2" /><path d="M8 2.4a5.6 5.6 0 0 1 0 11.2z" fill="currentColor" stroke="none"/></svg>'
   };
 
   var VIEWS = {};
@@ -245,12 +246,23 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
   }
 
-  function applyTheme(mode) {
-    document.documentElement.setAttribute('data-theme', mode);
-    store.theme = mode;
+  // store.theme 是用户的选择（auto / light / dark），data-theme 是生效结果，两者不能混成一个值：
+  // 早期版本在启动时就把 auto 覆盖成 light|dark，结果系统换外观后界面再也不跟随。
+  function effectiveTheme() {
+    if (store.theme === 'light' || store.theme === 'dark') return store.theme;
+    return root.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function applyTheme(choice) {
+    if (choice) store.theme = choice;
+    if (store.theme !== 'light' && store.theme !== 'dark') store.theme = 'auto';
+    document.documentElement.setAttribute('data-theme', effectiveTheme());
     save();
     var btn = document.getElementById('theme-toggle');
-    if (btn) btn.innerHTML = mode === 'light' ? ICONS.sun : mode === 'dark' ? ICONS.moon : 'A';
+    if (btn) {
+      btn.innerHTML = store.theme === 'light' ? ICONS.sun : store.theme === 'dark' ? ICONS.moon : ICONS.auto;
+      btn.title = '外观：' + ({ auto: '自动（跟随系统）', light: '浅色', dark: '深色' })[store.theme] + '（点击切换）';
+      btn.setAttribute('aria-label', btn.title);
+    }
   }
 
   function rerender() {
@@ -300,7 +312,7 @@
     slider: slider, group: group, segmented: seg, toggle: toggle, chip: chip,
     table: table, card: card, stat: stat, toast: toast,
     saveText: saveText, downloadBlob: downloadBlob,
-    rerender: rerender, save: save,
+    rerender: rerender, save: save, setTheme: applyTheme,
     go: function (id) { if (VIEWS[id]) { store.view = id; save(); rerender(); } },
     register: function (id, view) { VIEWS[id] = view; },
     views: function () { return Object.keys(VIEWS); },
@@ -314,11 +326,9 @@
   function boot() {
     load();
     store.site = siteFromKey(store.siteKey);
-    applyTheme(store.theme === 'light' || store.theme === 'dark' ? store.theme :
-      (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
-    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-      if (store.theme === 'auto') applyTheme(e.matches ? 'dark' : 'light');
-    });
+    applyTheme(store.theme);
+    var mq = matchMedia('(prefers-color-scheme: dark)');
+    if (mq.addEventListener) mq.addEventListener('change', function () { applyTheme(); });
 
     var nav = document.getElementById('nav');
     var order = [
@@ -358,8 +368,7 @@
     });
 
     document.getElementById('theme-toggle').addEventListener('click', function () {
-      var cur = document.documentElement.getAttribute('data-theme');
-      applyTheme(cur === 'dark' ? 'light' : 'dark');
+      applyTheme(store.theme === 'auto' ? 'light' : store.theme === 'light' ? 'dark' : 'auto');
       rerender();
     });
     document.getElementById('help-btn').addEventListener('click', function () {

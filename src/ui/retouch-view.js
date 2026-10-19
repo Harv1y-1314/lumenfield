@@ -81,13 +81,11 @@
 
       /* ── 读数条 ── */
       var readout = api.el('div', { class: 'row spread', style: { marginTop: '10px' } });
-      host.hist = api.el('canvas', { width: 260, height: 62, style: { width: '260px', height: '62px' } });
+      host.hist = api.el('canvas', { class: 'hist', width: 620, height: 62 });
       host.stage = stage; host.canvas = canvas;
       content.appendChild(api.el('div', { class: 'card tight' }, [
-        api.el('div', { class: 'row', style: { gap: '16px', alignItems: 'center' } }, [
-          host.hist,
-          readout
-        ]),
+        host.hist,
+        api.el('div', { class: 'row spread', style: { marginTop: '6px' } }, [readout, api.el('span')]),
         api.el('div', { class: 'tiny', style: { marginTop: '6px' }, text: '直方图为预览像素上的实时统计；拖动分屏把手或按住 ~ 看原图。' })
       ]));
 

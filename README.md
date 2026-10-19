@@ -4,6 +4,14 @@
 
 ![工作台](docs/screens/01-home.png)
 
+| 星野·全穹顶 | 星野·镜头视场 | 精修（左原图右效果） |
+| --- | --- | --- |
+| ![星野](docs/screens/03-sky-dome.png) | ![取景](docs/screens/04-sky-frame.png) | ![精修](docs/screens/05-retouch.png) |
+
+| 深色模式 | 手机（412px） | 路书 |
+| --- | --- | --- |
+| ![深色](docs/screens/07-home-dark.png) | ![手机](docs/screens/09-phone-dark.png) | ![路书](docs/screens/02-route.png) |
+
 ## 30 秒跑起来
 
 | 方式 | 怎么做 |

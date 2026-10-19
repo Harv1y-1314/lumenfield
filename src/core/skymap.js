@@ -401,6 +401,7 @@
     } else {
       var step = view.fov.h > 60 ? 30 : view.fov.h > 25 ? 10 : 5;
       ctx.textAlign = 'center';
+      var azTops = [];
       for (var az2 = 0; az2 < 360; az2 += step) {
         var pts = [];
         for (var alt2 = -5; alt2 <= 89; alt2 += 1) {
@@ -413,9 +414,23 @@
         for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
         ctx.strokeStyle = 'rgba(126,150,200,0.22)';
         ctx.stroke();
-        var last = pts[pts.length - 1];
-        ctx.fillText(az2 + '°', clamp(last.x, 12, ctx.canvas.width - 12), 12);
+        // 标签挂在这条线最接近画面中线的那一点：天顶处所有方位线挤在一起，
+        // 挂顶端既会被裁掉又互相重叠
+        var mid = ctx.canvas.height / 2, best = pts[0];
+        for (var k = 1; k < pts.length; k++) {
+          if (Math.abs(pts[k].y - mid) < Math.abs(best.y - mid)) best = pts[k];
+        }
+        azTops.push({ x: best.x, y: best.y, t: az2 + '°' });
       }
+      // 同一条水平线上仍可能撞名，按 x 排序后留一个隔 34px 的
+      azTops.sort(function (a, b) { return a.x - b.x; });
+      var lastLabelX = -1e9;
+      azTops.forEach(function (tk) {
+        var x = clamp(tk.x, 16, ctx.canvas.width - 16);
+        if (x - lastLabelX < 34) return;
+        ctx.fillText(tk.t, x, tk.y);
+        lastLabelX = x;
+      });
       for (var al3 = 0; al3 <= 80; al3 += view.fov.v > 40 ? 20 : 10) {
         var pp = [];
         for (var az3 = view.center.az - view.fov.h; az3 <= view.center.az + view.fov.h; az3 += 1) {
