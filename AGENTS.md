@@ -10,7 +10,7 @@
 | 远端 | 公开 `github.com/Harv1y-1314/lumenfield` |
 | 形态 | 单页应用，双击 `index.html` 即可；无 npm 依赖、无构建步骤 |
 | 视图 | 工作台 / 路书 / 星野 / 精修 / 工具箱，五个都可用 |
-| 核对 | 历算 330 项、影像算子 52 项全通过；外部参照 JPL DE440s + NOAA 实现，偏差见 docs/验证记录.md |
+| 核对 | 历算 330 项、影像算子 52 项、界面 17 组无头回归全通过；外部参照 JPL DE440s + NOAA 实现，偏差见 docs/验证记录.md |
 | 发布门槛 | `bash tools/check.sh` 全绿才允许 push |
 
 ## 读代码的顺序
@@ -25,12 +25,13 @@
 ## 每轮固定动作
 
 ```bash
-bash tools/check.sh                 # 语法 + 两套测试 + 发布前自检
-python3 -m http.server 8795         # 浏览器实测（file:// 也要顺手验一次）
+bash tools/check.sh                 # 语法 + 两套测试 + 界面回归 + 发布前自检（本机有 electron 才跑界面那步）
+electron tools/shot.mjs             # 只跑界面回归，截图落 $TMPDIR/lf-shots 肉眼过
+python3 -m http.server 8795         # 需要真浏览器时再用（file:// 与 http:// 都要顺手验）
 node tools/build-stars.js           # 改过星表或连线才需要
 ```
 
-改了算子必须补一条断言，改了界面必须截图肉眼过一遍。别只跑测试就发布。
+改了算子必须补一条断言，改了界面必须跑一遍 `shot.mjs` 并对截图肉眼复核。别只跑测试就发布。
 
 ## 红线
 
@@ -46,8 +47,11 @@ node tools/build-stars.js           # 改过星表或连线才需要
 
 | 要什么 | 去哪 |
 | --- | --- |
+| 发过什么版本、每轮动了什么 | `docs/迭代总览.md` |
+| 用户反馈与取证结论 | `docs/反馈记录.md`（编号 `F-0XX`） |
+| 还缺什么、什么值得先做、什么明确不做 | `docs/升级路线.md`（缺口 `G-XX` / 候选 `C-XX`） |
 | 为什么这么设计、砍了什么 | `docs/像素蛋糕拆解.md` 的"我们故意不抄的" |
-| 实测数字与踩过的坑 | `docs/验证记录.md`（含 10 个被测试抓出来的真 bug） |
+| 实测数字与踩过的坑 | `docs/验证记录.md`（含 13 个被测试抓出来的真 bug） |
 | 发布前该核什么、哪些只能肉眼核 | `docs/发布检查.md` |
 | 界面令牌与文案约定 | `docs/DESIGN.md`、`assets/css/tokens.css` |
 | 重取星表 / 重生成 DE440s 参照 | `tools/fetch-data.sh`、`tools/reference/skyfield_check.py` |
