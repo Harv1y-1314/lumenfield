@@ -167,7 +167,11 @@
             { id: 'paint', label: '补画肤色' }
           ], view.tool, function (id) { view.tool = id; paintToolHint(); })
         ]),
-        bind('brushR', { label: '笔刷半径', min: 1, max: 20, unit: '%', value: view.brushR * 100, onInput: function (v) { view.brushR = v / 100; } }),
+        api.slider({
+          label: '笔刷半径', min: 1, max: 20, unit: '%', value: Math.round(view.brushR * 100),
+          hint: '打点与补画共用这个半径；笔刷状态不进配方，所以它是界面态而不是参数',
+          onInput: function (v) { view.brushR = v / 100; }
+        }),
         api.el('div', { class: 'tiny', id: 'tool-hint' }),
         api.el('div', { class: 'row', style: { gap: '6px' } }, [
           api.el('button', { class: 'control', text: '清掉打点', onclick: function () { R.portrait.spots = []; R.portrait.paint = []; redraw(true); } }),
